@@ -3,6 +3,11 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-d
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import Dashboard from "./pages/Dashboard";
+// import Orders from "./pages/Orders";
+// import Clients from "./pages/Clients";
+// import Purchases from "./pages/Purchases";
+// import Suppliers from "./pages/Suppliers";
+import DashboardLayout from "./layouts/DashboardLayout";
 
 function App() {
   return (
@@ -11,10 +16,15 @@ function App() {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        {/* <Route path="/orders" element={<DashboardLayout><Orders /></DashboardLayout>} />
+        <Route path="/clients" element={<DashboardLayout><Clients /></DashboardLayout>} />
+        <Route path="/purchases" element={<DashboardLayout><Purchases /></DashboardLayout>} />
+        <Route path="/suppliers" element={<DashboardLayout><Suppliers /></DashboardLayout>} /> */}
       </Routes>
     </Router>
   );
 }
 
 export default App;
+
