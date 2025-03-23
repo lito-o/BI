@@ -13,14 +13,14 @@ router.get("/", async (req, res) => {
 });
 
 // Добавить нового поставщика
-router.post("/", async (req, res) => {
-  try {
-    const { name, type, country } = req.body;
-    const newSupplier = await Supplier.create({ name, type, country });
-    res.json(newSupplier);
-  } catch (error) {
-    res.status(500).json({ error: "Ошибка создания поставщика" });
-  }
-});
+// router.post("/", async (req, res) => {
+//   try {
+//     const { name, type, country } = req.body;
+//     const newSupplier = await Supplier.create({ name, type, country });
+//     res.json(newSupplier);
+//   } catch (error) {
+//     res.status(500).json({ error: "Ошибка создания поставщика" });
+//   }
+// });
 
 module.exports = router;

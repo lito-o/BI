@@ -27,24 +27,24 @@ router.get("/:id", async (req, res) => {
 });
 
 // Добавить новый заказ
-router.post(
-  "/",
-  [
-    body("clientId").isInt().withMessage("ID клиента должен быть числом"),
-    body("totalAmount").isFloat({ min: 0 }).withMessage("Сумма заказа должна быть положительной"),
-    body("currency").notEmpty().withMessage("Валюта обязательна"),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+// router.post(
+//   "/",
+//   [
+//     body("clientId").isInt().withMessage("ID клиента должен быть числом"),
+//     body("totalAmount").isFloat({ min: 0 }).withMessage("Сумма заказа должна быть положительной"),
+//     body("currency").notEmpty().withMessage("Валюта обязательна"),
+//   ],
+//   async (req, res) => {
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    try {
-      const newOrder = await Order.create(req.body);
-      res.json(newOrder);
-    } catch (error) {
-      res.status(500).json({ error: "Ошибка создания заказа" });
-    }
-  }
-);
+//     try {
+//       const newOrder = await Order.create(req.body);
+//       res.json(newOrder);
+//     } catch (error) {
+//       res.status(500).json({ error: "Ошибка создания заказа" });
+//     }
+//   }
+// );
 
 module.exports = router;

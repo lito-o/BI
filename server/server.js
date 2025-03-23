@@ -17,21 +17,18 @@ app.use(cors()); // Разрешаем CORS
 app.use(express.json()); // Разбираем JSON в запросах
 app.use(morgan("dev")); // Логирование запросов
 
-// Подключаем маршруты
-app.use("/api/auth", authRoutes);
-
 // Импорт маршрутов
 const supplierRoutes = require("./routes/suppliersRoutes");
 const deliveryRoutes = require("./routes/deliveriesRoutes");
 const clientRoutes = require("./routes/clientsRoutes");
 const orderRoutes = require("./routes/ordersRoutes");
 
-// Подключаем роуты
+// Подключаем маршруты
+app.use("/api/auth", authRoutes);
 app.use("/api/suppliers", supplierRoutes);
 app.use("/api/deliveries", deliveryRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/orders", orderRoutes);
-
 
 // Принудительное создание таблиц
 db

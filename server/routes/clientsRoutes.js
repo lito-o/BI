@@ -4,18 +4,26 @@ const Client = require("../models/Client");
 const { body, validationResult } = require("express-validator");
 
 // Получить всех клиентов
+// router.get("/", async (req, res) => {
+//   try {
+//     const clients = await Client.findAll();
+    
+//     // Добавляем статус каждому клиенту
+//     for (const client of clients) {
+//       client.dataValues.status = await client.getStatus();
+//     }
+
+//     res.json(clients);
+//   } catch (error) {
+//     res.status(500).json({ error: "Ошибка получения клиентов" });
+//   }
+// });
 router.get("/", async (req, res) => {
   try {
     const clients = await Client.findAll();
-    
-    // Добавляем статус каждому клиенту
-    for (const client of clients) {
-      client.dataValues.status = await client.getStatus();
-    }
-
     res.json(clients);
   } catch (error) {
-    res.status(500).json({ error: "Ошибка получения клиентов" });
+    res.status(500).json({ error: "Ошибка сервера" });
   }
 });
 

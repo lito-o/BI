@@ -11,11 +11,6 @@ const Dashboard = () => {
     }
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
-
   return (
     <Container>
       <Typography variant="h4">Главная страница BI-системы</Typography>

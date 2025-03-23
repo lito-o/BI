@@ -4,20 +4,21 @@ const Client = require("./Client");
 
 const Order = db.define("Order", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  date: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-  totalAmount: { type: DataTypes.FLOAT, allowNull: false },
-  currency: { type: DataTypes.STRING, allowNull: false },
-  paid: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
-  status: {
-    type: DataTypes.VIRTUAL,
+  request_date: { type: DataTypes.DATE, allowNull: false }, // Дата обращения
+  confirm_date: { type: DataTypes.DATE }, // Дата подтверждения
+  description: { type: DataTypes.TEXT, allowNull: false }, // Описание заказа
+  total_amount: { type: DataTypes.FLOAT, allowNull: false }, // Сумма заказа
+  cost_price: { type: DataTypes.FLOAT, allowNull: false }, // Себестоимость
+  profit: {
+    type: DataTypes.FLOAT,
     get() {
-      return this.paid >= this.totalAmount ? "Оплачен" : "Не оплачен";
+      return this.getDataValue("total_amount") - this.getDataValue("cost_price");
     },
-  },
+  }, // Прибыль
 });
 
-// Связываем заказ с клиентом
-Order.belongsTo(Client, { foreignKey: "clientId" });
-Client.hasMany(Order, { foreignKey: "clientId" });
+// Связь с таблицей "Клиенты"
+Order.belongsTo(Client, { foreignKey: "clientId", as: "client" });
 
 module.exports = Order;
+

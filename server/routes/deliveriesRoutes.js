@@ -16,13 +16,13 @@ router.get("/", async (req, res) => {
 });
 
 // Добавить новую поставку
-router.post("/", async (req, res) => {
-  try {
-    const delivery = await Delivery.create(req.body);
-    res.json(delivery);
-  } catch (error) {
-    res.status(500).json({ error: "Ошибка создания поставки" });
-  }
-});
+// router.post("/", async (req, res) => {
+//   try {
+//     const delivery = await Delivery.create(req.body);
+//     res.json(delivery);
+//   } catch (error) {
+//     res.status(500).json({ error: "Ошибка создания поставки" });
+//   }
+// });
 
 module.exports = router;
