@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Typography} from "@mui/material";
+import { Typography} from "@mui/material";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -12,9 +12,7 @@ const Dashboard = () => {
   }, [navigate]);
 
   return (
-    <Container>
       <Typography variant="h4">Главная страница BI-системы</Typography>
-    </Container>
   );
 };
 

@@ -10,7 +10,7 @@ const Sidebar = ({ open }) => {
     { text: "Главная", icon: <Home />, path: "/dashboard" },
     { text: "Заказы", icon: <ShoppingCart />, path: "/orders" },
     { text: "Клиенты", icon: <People />, path: "/clients" },
-    { text: "Закупки", icon: <Inventory />, path: "/purchases" },
+    { text: "Закупки", icon: <Inventory />, path: "/deliveries" },
     { text: "Поставщики", icon: <Business />, path: "/suppliers" },
   ];
 
@@ -20,7 +20,7 @@ const Sidebar = ({ open }) => {
   };
 
   return (
-    <Drawer variant="permanent" open={open}>
+    <Drawer variant="permanent" sx={{ width: 180, flexShrink: 0 }} open={open}>
       <List>
         {menuItems.map((item, index) => (
           <ListItem button key={index} onClick={() => navigate(item.path)}>

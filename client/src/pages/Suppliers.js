@@ -16,35 +16,61 @@ const Suppliers = () => {
   const columns = [
     { field: 'name', headerName: 'Наименование', width: 150 },
     { field: 'type', headerName: 'Вид', width: 150 },
-    { field: 'country', headerName: 'Страна', width: 150 },
+    { field: 'country', headerName: 'Страна', width: 100 },
     { 
       field: 'defective_rate_year', 
       headerName: 'Качество (год)', 
-      width: 150,
+      width: 100,
       valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
     },
     { 
       field: 'defective_rate_total', 
       headerName: 'Качество (всё время)', 
-      width: 150,
+      width: 100,
       valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
     },
     { 
       field: 'on_time_percentage', 
       headerName: 'Процент вовремя', 
-      width: 150,
+      width: 100,
       valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
     },
+    { 
+      field: 'replacement_days', 
+      headerName: 'Срок замены', 
+      width: 100,
+      valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
+    },
+    { 
+      field: 'assortment_count', 
+      headerName: 'Ассортимент', 
+      width: 100,
+      valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
+    },
+    { field: 'delivery_change', headerName: 'Изменение срока', width: 150 },
     { 
       field: 'avg_delivery_time', 
       headerName: 'Среднее время доставки', 
       width: 150,
       valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
     },
+    { 
+      field: 'total_deliveries', 
+      headerName: 'Количество поставок', 
+      width: 150,
+      valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
+    },
+    { 
+      field: 'rejected_rate_year', 
+      headerName: 'Доля отклоненного товара', 
+      width: 150,
+      valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
+    },
+    { field: 'category', headerName: 'Категория', width: 150 },
   ];
 
   return (
-    <div style={{ height: 400, width: '100%' }}>
+    <div style={{ height: 900, width: '100%' }}>
       <DataGrid
         rows={suppliers}
         columns={columns}

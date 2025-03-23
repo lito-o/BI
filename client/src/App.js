@@ -5,7 +5,7 @@ import RegisterPage from "./pages/RegisterPage";
 import Dashboard from "./pages/Dashboard";
 import Orders from "./pages/Orders";
 import Clients from "./pages/Clients";
-import Purchases from "./pages/Purchases";
+import Deliveries from "./pages/Deliveries";
 import Suppliers from "./pages/Suppliers";
 import DashboardLayout from "./layouts/DashboardLayout";
 
@@ -19,7 +19,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
         <Route path="/orders" element={<DashboardLayout><Orders /></DashboardLayout>} />
         <Route path="/clients" element={<DashboardLayout><Clients /></DashboardLayout>} />
-        <Route path="/purchases" element={<DashboardLayout><Purchases /></DashboardLayout>} />
+        <Route path="/deliveries" element={<DashboardLayout><Deliveries /></DashboardLayout>} />
         <Route path="/suppliers" element={<DashboardLayout><Suppliers /></DashboardLayout>} />
       </Routes>
     </Router>
