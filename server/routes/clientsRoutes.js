@@ -41,24 +41,24 @@ router.get("/:id", async (req, res) => {
 });
 
 // Добавить нового клиента
-router.post(
-  "/",
-  [
-    body("name").notEmpty().withMessage("Наименование клиента обязательно"),
-    body("type").isIn(["Юридическое лицо", "Физическое лицо"]).withMessage("Некорректный тип клиента"),
-    body("unp").notEmpty().withMessage("УНП обязательно"),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+// router.post(
+//   "/",
+//   [
+//     body("name").notEmpty().withMessage("Наименование клиента обязательно"),
+//     body("type").isIn(["Юридическое лицо", "Физическое лицо"]).withMessage("Некорректный тип клиента"),
+//     body("unp").notEmpty().withMessage("УНП обязательно"),
+//   ],
+//   async (req, res) => {
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    try {
-      const newClient = await Client.create(req.body);
-      res.json(newClient);
-    } catch (error) {
-      res.status(500).json({ error: "Ошибка создания клиента" });
-    }
-  }
-);
+//     try {
+//       const newClient = await Client.create(req.body);
+//       res.json(newClient);
+//     } catch (error) {
+//       res.status(500).json({ error: "Ошибка создания клиента" });
+//     }
+//   }
+// );
 
 module.exports = router;

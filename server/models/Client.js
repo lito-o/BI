@@ -12,7 +12,7 @@ const Client = db.define("Client", {
   activity_status: {
     type: DataTypes.VIRTUAL,
     get() {
-      return this.getDataValue("monthly_orders") > this.getDataValue("avg_orders_all")
+      return this.getDataValue("monthly_orders") === this.getDataValue("avg_orders_all")
         ? "Активный"
         : "Пассивный";
     },

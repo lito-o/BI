@@ -47,7 +47,7 @@ const Suppliers = () => {
       width: 100,
       valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
     },
-    { field: 'delivery_change', headerName: 'Изменение срока', width: 150 },
+    { field: 'delivery_change', headerName: 'Изменение срока', type: 'boolean', width: 150 },
     { 
       field: 'avg_delivery_time', 
       headerName: 'Среднее время доставки', 

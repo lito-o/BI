@@ -7,13 +7,22 @@ const Supplier = require("../models/Supplier");
 router.get("/", async (req, res) => {
   try {
     const deliveries = await Delivery.findAll({
-      include: Supplier, // Подтягиваем поставщика
+      include: [
+        {
+          model: Supplier,
+          as: "supplier",
+        },
+      ],
     });
     res.json(deliveries);
   } catch (error) {
+    console.error("Ошибка получения поставок:", error);
     res.status(500).json({ error: "Ошибка получения поставок" });
   }
 });
+
+
+module.exports = router;
 
 // Добавить новую поставку
 // router.post("/", async (req, res) => {
@@ -24,5 +33,3 @@ router.get("/", async (req, res) => {
 //     res.status(500).json({ error: "Ошибка создания поставки" });
 //   }
 // });
-
-module.exports = router;

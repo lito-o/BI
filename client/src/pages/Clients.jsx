@@ -7,7 +7,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  TableSortLabel,
   Collapse,
   IconButton,
 } from "@mui/material";
