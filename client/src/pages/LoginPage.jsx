@@ -1,6 +1,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { TextField, Button, Container, Typography } from "@mui/material";
+import { TextField, Button, Container, Typography, Divider, Link } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -19,9 +19,9 @@ const LoginPage = () => {
   };
 
   return (
-    <Container maxWidth="xs">
-      <Typography variant="h4" align="center" gutterBottom>
-        Вход
+    <Container maxWidth="xs" >
+      <Typography variant="h6" align="center" gutterBottom>
+        Войти в приложение
       </Typography>
       <form onSubmit={handleSubmit(onSubmit)}>
         <TextField {...register("email")} label="Email" fullWidth margin="normal" required />
@@ -30,6 +30,20 @@ const LoginPage = () => {
           Войти
         </Button>
       </form>
+      <Divider>
+            <Typography sx={{ color: 'text.secondary', padding: '5 0 5 0' }}>или</Typography>
+          </Divider>
+          <Typography sx={{ textAlign: 'center' }}>
+              Не зарегистрированы?{' '}
+              <Link
+                href="/register"
+                variant="body2"
+                sx={{ alignSelf: 'center' }}
+                underline="none"
+              >
+                Создать аккаунт
+              </Link>
+            </Typography>
     </Container>
   );
 };

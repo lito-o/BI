@@ -1,11 +1,10 @@
 const { DataTypes } = require("sequelize");
 const db = require("../config/db");
-const Client = require("./Client");
 
 const Order = db.define("Order", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   request_date: { type: DataTypes.DATE, allowNull: false }, // Дата и время обращения
-  confirm_date: { type: DataTypes.DATE}, // Дата и время подтверждения заявки
+  confirm_date: { type: DataTypes.DATE }, // Дата и время подтверждения заявки
   confirm_status: {
     type: DataTypes.VIRTUAL,
     get() {
@@ -66,6 +65,15 @@ const Order = db.define("Order", {
   }, // Осталось оплатить
   payment_date: { type: DataTypes.DATE }, // Дата и время оплаты
   payment_term: { type: DataTypes.DATE }, // Срок оплаты
+  order_payment_time: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      if (!this.order_ready_date || !this.payment_date) return 0;
+      const orderPaymentTime =
+        new Date(this.order_ready_date) - new Date(this.payment_date);
+      return orderPaymentTime / (1000 * 60 * 60 * 24);
+    },
+  }, // Время оплаты заказа
   payment_term_status: {
     type: DataTypes.VIRTUAL,
     get() {
@@ -103,10 +111,6 @@ const Order = db.define("Order", {
     },
   }, // Статус заказа
 });
-
-// Связь с таблицей "Клиенты"
-Order.belongsTo(Client, { foreignKey: "clientId" });
-Client.hasMany(Order, { foreignKey: "clientId" });
 
 module.exports = Order;
 

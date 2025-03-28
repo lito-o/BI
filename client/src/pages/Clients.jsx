@@ -30,7 +30,6 @@ const Clients = () => {
       ...prev,
       [clientId]: !prev[clientId],
     }));
-
     if (!expandedRows[clientId]) {
       const orders = await getClientOrders(clientId);
       setClients((prev) =>
@@ -39,6 +38,13 @@ const Clients = () => {
         )
       );
     }
+  };
+
+  // Функция для безопасного отображения значений
+  const renderValue = (value) => {
+    if (value === undefined || value === null) return '-';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return value;
   };
 
   return (
@@ -63,13 +69,13 @@ const Clients = () => {
                     {expandedRows[client.id] ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                   </IconButton>
                 </TableCell>
-                <TableCell>{client.name}</TableCell>
-                <TableCell>{client.type}</TableCell>
-                <TableCell>{client.unp}</TableCell>
-                <TableCell>{client.avg_check.toFixed(2)}</TableCell>
-                <TableCell>{client.debt.toFixed(2)}</TableCell>
-                <TableCell>{client.avg_payment_time.toFixed(1)} дней</TableCell>
-                <TableCell>{client.activity_status}</TableCell>
+                <TableCell>{renderValue(client.name)}</TableCell>
+                <TableCell>{renderValue(client.type)}</TableCell>
+                <TableCell>{renderValue(client.unp)}</TableCell>
+                <TableCell>{renderValue(client.avg_check)}</TableCell>
+                <TableCell>{renderValue(client.debt)}</TableCell>
+                <TableCell>{renderValue(client.avg_payment_time)} дней</TableCell>
+                <TableCell>{renderValue(client.activity_status)}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell colSpan={8} sx={{ paddingBottom: 0, paddingTop: 0 }}>
@@ -85,11 +91,11 @@ const Clients = () => {
                       <TableBody>
                         {client.orders?.map((order) => (
                           <TableRow key={order.id}>
-                            <TableCell>{new Date(order.request_date).toLocaleDateString()}</TableCell>
-                            <TableCell>{order.total_amount.toFixed(2)}</TableCell>
-                            <TableCell>{order.paid_amount.toFixed(2)}</TableCell>
-                            <TableCell>{(order.total_amount - order.paid_amount).toFixed(2)}</TableCell>
-                            <TableCell>{order.status}</TableCell>
+                            <TableCell>{order.request_date ? new Date(order.request_date).toLocaleDateString() : '-'}</TableCell>
+                            <TableCell>{order.total_amount?.toFixed?.(2)}</TableCell>
+                            <TableCell>{order.paid_amount?.toFixed?.(2)}</TableCell>
+                            <TableCell>{(order.total_amount - order.paid_amount)?.toFixed?.(2)}</TableCell>
+                            <TableCell>{order.status || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -106,4 +112,3 @@ const Clients = () => {
 };
 
 export default Clients;
-

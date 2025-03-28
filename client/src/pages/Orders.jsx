@@ -122,6 +122,13 @@ const Orders = () => {
       //   params?.value ? new Date(params.value).toLocaleString() : "—",
     },
     {
+      field: "order_payment_time",
+      headerName: "Время оплаты заказа (дн)",
+      width: 150,
+      // valueFormatter: (params) =>
+      //   params?.value !== undefined ? params.value.toFixed(2) : "N/A",
+    },
+    {
       field: "payment_term_status",
       headerName: "Соответствие срокам оплаты",
       width: 150,

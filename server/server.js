@@ -22,6 +22,7 @@ const supplierRoutes = require("./routes/suppliersRoutes");
 const deliveryRoutes = require("./routes/deliveriesRoutes");
 const clientRoutes = require("./routes/clientsRoutes");
 const orderRoutes = require("./routes/ordersRoutes");
+const dashboardRouter = require("./routes/dashboard");
 
 // Подключаем маршруты
 app.use("/api/auth", authRoutes);
@@ -29,6 +30,11 @@ app.use("/api/suppliers", supplierRoutes);
 app.use("/api/deliveries", deliveryRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/dashboard", dashboardRouter);
+
+// Установка ассоциаций
+Order.belongsTo(Client, { foreignKey: "clientId" });
+Client.hasMany(Order, { foreignKey: "clientId" });
 
 // Принудительное создание таблиц
 db
@@ -47,3 +53,5 @@ app.listen(PORT, async () => {
     console.error("Ошибка подключения к базе данных:", error);
   }
 });
+
+module.exports = { Client, Order };
