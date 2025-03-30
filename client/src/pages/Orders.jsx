@@ -45,8 +45,7 @@ const Orders = () => {
       field: "application_processing_time",
       headerName: "Время обработки заявки (ч)",
       width: 150,
-      // valueFormatter: (params) =>
-      //   params.value !== undefined ? params.value.toFixed(2) : "N/A",
+      // valueFormatter: (params) => (`${params.value} часов`),
     },
     {
       field: "order_ready_date",
