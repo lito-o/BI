@@ -26,15 +26,15 @@ const Orders = () => {
       field: "request_date",
       headerName: "Дата обращения",
       width: 150,
-      // valueFormatter: (params) =>
-      //   params?.value ? new Date(params.value).toLocaleString() : "—",
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
     },
     {
       field: "confirm_date",
       headerName: "Дата подтверждения",
       width: 150,
-      // valueFormatter: (params) =>
-      //   params?.value ? new Date(params.value).toLocaleString() : "—",
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
     },
     {
       field: "confirm_status",
@@ -45,14 +45,15 @@ const Orders = () => {
       field: "application_processing_time",
       headerName: "Время обработки заявки (ч)",
       width: 150,
-      // valueFormatter: (params) => (`${params.value} часов`),
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(0) : "N/A",
     },
     {
       field: "order_ready_date",
       headerName: "Дата готовности заказа",
       width: 150,
-      // valueFormatter: (params) =>
-      //   params?.value ? new Date(params.value).toLocaleString() : "—",
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
     },
     {
       field: "description",
@@ -63,15 +64,15 @@ const Orders = () => {
       field: "total_amount",
       headerName: "Сумма заказа",
       width: 120,
-      // valueFormatter: (params) =>
-      //   params?.value !== undefined ? params.value.toFixed(2) : "N/A",
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "cost_price",
       headerName: "Себестоимость",
       width: 120,
-      // valueFormatter: (params) =>
-      //   params?.value !== undefined ? params.value.toFixed(2) : "N/A",
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "currency",
@@ -82,72 +83,74 @@ const Orders = () => {
       field: "marginality",
       headerName: "Маржинальность",
       width: 120,
-      // valueFormatter: (params) =>
-      //   params?.value !== undefined ? params.value.toFixed(2) : "N/A",
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "profit",
       headerName: "Прибыль",
       width: 120,
-      // valueFormatter: (params) =>
-      //   params?.value !== undefined ? params.value.toFixed(2) : "N/A",
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "paid_amount",
       headerName: "Оплачено",
       width: 120,
-      // valueFormatter: (params) =>
-      //   params?.value !== undefined ? params.value.toFixed(2) : "N/A",
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "left_to_pay",
       headerName: "Осталось оплатить",
       width: 120,
-      // valueFormatter: (params) =>
-      //   params?.value !== undefined ? params.value.toFixed(2) : "N/A",
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "payment_date",
       headerName: "Дата оплаты",
       width: 150,
-      // valueFormatter: (params) =>
-      //   params?.value ? new Date(params.value).toLocaleString() : "—",
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
     },
-    {
-      field: "payment_term",
-      headerName: "Срок оплаты",
-      width: 150,
-      // valueFormatter: (params) =>
-      //   params?.value ? new Date(params.value).toLocaleString() : "—",
-    },
+    // {
+    //   field: "payment_term",
+    //   headerName: "Срок оплаты",
+    //   width: 150,
+    //   valueGetter: (value) =>
+    //   value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
+    // },
     {
       field: "order_payment_time",
       headerName: "Время оплаты заказа (дн)",
       width: 150,
-      // valueFormatter: (params) =>
-      //   params?.value !== undefined ? params.value.toFixed(2) : "N/A",
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(0) : "N/A",
     },
     {
       field: "payment_term_status",
+      type: 'boolean',
       headerName: "Соответствие срокам оплаты",
       width: 150,
     },
-    {
-      field: "delivery_time",
-      headerName: "Срок доставки",
-      width: 150,
-      // valueFormatter: (params) =>
-      //   params?.value ? new Date(params.value).toLocaleString() : "—",
-    },
+    // {
+    //   field: "delivery_time",
+    //   headerName: "Срок доставки",
+    //   width: 150,
+    //   valueGetter: (value) =>
+    //   value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
+    // },
     {
       field: "delivery_date",
       headerName: "Дата доставки",
       width: 150,
-      // valueFormatter: (params) =>
-      //   params?.value ? new Date(params.value).toLocaleString() : "—",
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
     },
     {
       field: "delivery_status",
+      type: 'boolean',
       headerName: "Соответствие срокам доставки",
       width: 150,
     },
@@ -155,8 +158,8 @@ const Orders = () => {
       field: "order_completion_time",
       headerName: "Время выполнения заказа (дн)",
       width: 150,
-      // valueFormatter: (params) =>
-      //   params?.value !== undefined ? params.value.toFixed(2) : "N/A",
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(0) : "N/A",
     },
     {
       field: "status",

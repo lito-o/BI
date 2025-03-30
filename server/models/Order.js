@@ -30,10 +30,10 @@ const Order = db.define("Order", {
   payment_date: { type: DataTypes.DATE }, // Дата и время оплаты
   payment_term: { type: DataTypes.DATE }, // Срок оплаты
   order_payment_time: { type: DataTypes.FLOAT }, // Время оплаты заказа
-  payment_term_status: { type: DataTypes.STRING }, // Соответствие срокам оплаты
+  payment_term_status: { type: DataTypes.BOOLEAN }, // Соответствие срокам оплаты
   delivery_time: { type: DataTypes.DATE }, // Срок доставки
   delivery_date: { type: DataTypes.DATE }, // Дата и время доставки заказа
-  delivery_status: { type: DataTypes.STRING }, // Соответствие срокам доставки
+  delivery_status: { type: DataTypes.BOOLEAN }, // Соответствие срокам доставки
   order_completion_time: { type: DataTypes.FLOAT }, // Время выполнения заказа
   status: { type: DataTypes.STRING }, // Статус заказа
 });

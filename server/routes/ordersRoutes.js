@@ -24,14 +24,16 @@ async function calculateAndSaveFields(order) {
   const deliveryDate = order.delivery_date ? new Date(order.delivery_date) : null;
   const deliveryTime = order.delivery_time ? new Date(order.delivery_time) : null;
 
-  order.confirm_status = !confirmDate ? "На рассмотрении" : now - requestDate > 7 * 24 * 60 * 60 * 1000 ? "Отклонён" : "Подтверждён";
-  order.application_processing_time = confirmDate ? (confirmDate - requestDate) / (1000 * 60 * 60 * 24) : null;
+  order.confirm_status = !confirmDate ? "На рассмотрении" : confirmDate - requestDate > 7 * 24 * 60 * 60 * 1000 ? "Отклонён" : "Подтверждён";
+  order.application_processing_time = confirmDate ? (confirmDate - requestDate) / (1000 * 60 * 60) : null;
   order.marginality = order.total_amount ? order.cost_price / order.total_amount : 0;
   order.profit = order.total_amount - order.cost_price;
   order.left_to_pay = order.total_amount - order.paid_amount;
-  order.order_payment_time = orderReadyDate && paymentDate ? (orderReadyDate - paymentDate) / (1000 * 60 * 60) : 0;
-  order.payment_term_status = paymentDate && paymentTerm ? paymentDate <= paymentTerm ? "Соответствует" : "Не Соответствует" : null;
-  order.delivery_status = deliveryDate && deliveryTime ? deliveryDate <= deliveryTime ? "Соответствует" : "Не Соответствует" : null;
+  order.order_payment_time = orderReadyDate && paymentDate 
+    ? Math.abs(orderReadyDate - paymentDate) / (1000 * 60 * 60) 
+    : 0;
+  order.payment_term_status = paymentDate && paymentTerm ? paymentDate <= paymentTerm ? true : false : null;
+  order.delivery_status = deliveryDate && deliveryTime ? deliveryDate <= deliveryTime ? true : false : null;
   order.order_completion_time = deliveryDate ? (deliveryDate - requestDate) / (1000 * 60 * 60 * 24) : null;
   order.status = !confirmDate ? "На рассмотрении" : order.confirm_status === "Подтверждён" ? "Подтвержден" : "Не подтвержден";
 
