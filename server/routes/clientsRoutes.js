@@ -81,10 +81,8 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Экспортируем роутер как основной экспорт
 module.exports = router;
 
-// Экспортируем функции отдельно
 module.exports.updateClientFields = updateClientFields;
 module.exports.calculateAvgCheck = calculateAvgCheck;
 module.exports.calculateDebt = calculateDebt;

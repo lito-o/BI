@@ -14,18 +14,7 @@ const Order = db.define("Order", {
   currency: { type: DataTypes.TEXT, allowNull: false, defaultValue: "BYN" }, // Валюта
   marginality: { type: DataTypes.FLOAT }, // Маржинальность
   profit: { type: DataTypes.FLOAT }, // Прибыль
-  paid_amount: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-    defaultValue: 0,
-    validate: {
-      max(value) {
-        if (value > this.total_amount) {
-          throw new Error("Оплачено не может быть больше суммы заказа");
-        }
-      },
-    },
-  }, // Оплачено
+  paid_amount: { type: DataTypes.FLOAT, allowNull: false, efaultValue: 0,}, // Оплачено
   left_to_pay: { type: DataTypes.FLOAT }, // Осталось оплатить
   payment_date: { type: DataTypes.DATE }, // Дата и время оплаты
   payment_term: { type: DataTypes.DATE }, // Срок оплаты
@@ -37,4 +26,5 @@ const Order = db.define("Order", {
   order_completion_time: { type: DataTypes.FLOAT }, // Время выполнения заказа
   status: { type: DataTypes.STRING }, // Статус заказа
 });
+
 module.exports = Order;

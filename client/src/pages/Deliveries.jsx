@@ -29,61 +29,74 @@ const Deliveries = () => {
       field: "quantity",
       headerName: "Количество",
       width: 120,
-      // valueFormatter: (params) => params?.value ?? "N/A",
     },
     {
       field: "defective_quantity",
       headerName: "Количество брака",
       width: 130,
-      // valueFormatter: (params) => params?.value ?? "N/A",
+    },
+    {
+      field: "quality_of_delivery",
+      headerName: "Качество поставки",
+      type: "precent",
+      width: 100,
+      valueFormatter: (value) => {
+        if (value == null) {
+          return '';
+        }
+        value *= 100;
+        return `${value.toFixed(2)} %`;
+      },
     },
     {
       field: "unit",
       headerName: "Единицы измерения",
       width: 120,
-      // valueFormatter: (params) => params?.value ?? "N/A",
     },
     {
       field: "price_per_unit",
       headerName: "Цена за единицу",
       width: 130,
-      // valueFormatter: (params) => (params?.value ? params.value.toFixed(2) : "N/A"),
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "currency",
       headerName: "Валюта",
       width: 80,
-      // valueFormatter: (params) => params?.value ?? "N/A",
     },
     {
       field: "total_price",
       headerName: "Общая стоимость",
       width: 130,
-      // valueFormatter: (params) => (params?.value ? params.value.toFixed(2) : "N/A"),
+      valueGetter: (value) =>
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "purchase_date",
       headerName: "Дата покупки",
       width: 130,
-      // valueFormatter: (params) => (params?.value ? new Date(params.value).toLocaleDateString() : "—"),
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
     },
     {
       field: "arrival_date",
       headerName: "Дата поступления",
       width: 130,
-      // valueFormatter: (params) => (params?.value ? new Date(params.value).toLocaleDateString() : "—"),
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
     },
     {
       field: "delivery_term",
       headerName: "Срок доставки",
       width: 120,
-      // valueFormatter: (params) => (params?.value !== undefined ? `${params.value} дней` : "N/A"),
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
     },
     {
       field: "delivery_time",
-      headerName: "Время доставки",
+      headerName: "Время доставки (дн)",
       width: 120,
-      // valueFormatter: (params) => (params?.value !== undefined ? `${params.value} дней` : "N/A"),
     },
     { field: "status", headerName: "Статус", width: 150 },
     {
@@ -91,7 +104,8 @@ const Deliveries = () => {
       headerName: "Поставщик",
       width: 150,
       valueGetter: (params) => {
-        return params.row?.supplier?.name || "Неизвестно";
+        if (!params || !params.row || !params.row.supplier) return "Неизвестно";
+        return params.row.supplier.name || "Неизвестно";
       },
     },
   ];

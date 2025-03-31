@@ -21,50 +21,50 @@ const Suppliers = () => {
       field: 'defective_rate_year', 
       headerName: 'Качество (год)', 
       width: 100,
-      valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
+      // valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
     },
     { 
       field: 'defective_rate_total', 
       headerName: 'Качество (всё время)', 
       width: 100,
-      valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
+      // valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
     },
     { 
       field: 'on_time_percentage', 
       headerName: 'Процент вовремя', 
       width: 100,
-      valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
+      // valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
     },
     { 
       field: 'replacement_days', 
       headerName: 'Срок замены', 
       width: 100,
-      valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
+      // valueFormatter: (params) => params.value !== undefined ? `${(params.value * 100).toFixed(2)}%` : '0'
     },
     { 
       field: 'assortment_count', 
       headerName: 'Ассортимент', 
       width: 100,
-      valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
+      // valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
     },
     { field: 'delivery_change', headerName: 'Изменение срока', type: 'boolean', width: 150 },
     { 
       field: 'avg_delivery_time', 
       headerName: 'Среднее время доставки', 
       width: 150,
-      valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
+      // valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
     },
     { 
-      field: 'total_deliveries', 
+      field: 'received_quantity', 
       headerName: 'Количество поставок', 
       width: 150,
-      valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
+      // valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
     },
     { 
       field: 'rejected_rate_year', 
       headerName: 'Доля отклоненного товара', 
       width: 150,
-      valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
+      // valueFormatter: (params) => params.value !== undefined ? `${params.value.toFixed(1)} дней` : '0'
     },
     { field: 'category', headerName: 'Категория', width: 150 },
   ];

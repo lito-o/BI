@@ -4,7 +4,7 @@ const Order = require("./Order");
 
 const Client = db.define("Client", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  name: { type: DataTypes.STRING, allowNull: false }, // Наименование клиента
+  name: { type: DataTypes.STRING, unique: true, allowNull: false }, // Наименование клиента
   type: { type: DataTypes.ENUM("Юридическое лицо", "Физическое лицо"), allowNull: false }, // Вид клиента
   unp: { type: DataTypes.STRING, unique: true, allowNull: false }, // УНП (уникальный номер плательщика)
   avg_check: { type: DataTypes.FLOAT, defaultValue: 0 }, // Средний чек
