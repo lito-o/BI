@@ -61,9 +61,9 @@ const Clients = () => {
                 <TableCell>{client.name}</TableCell>
                 <TableCell>{client.type}</TableCell>
                 <TableCell>{client.unp}</TableCell>
-                <TableCell>{client.avg_check}</TableCell>
-                <TableCell>{client.debt}</TableCell>
-                <TableCell>{client.avg_payment_time} дней</TableCell>
+                <TableCell>{client.avg_check.toFixed(2)}</TableCell>
+                <TableCell>{client.debt.toFixed(2)}</TableCell>
+                <TableCell>{client.avg_payment_time.toFixed(2)} дней</TableCell>
                 <TableCell>{client.activity_status}</TableCell>
               </TableRow>
               <TableRow>

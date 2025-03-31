@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, CssBaseline } from "@mui/material";
+import { Box, CssBaseline, Container } from "@mui/material";
 import Sidebar from "../components/Sidebar";
 
 const DashboardLayout = ({ children }) => {
@@ -8,7 +8,9 @@ const DashboardLayout = ({ children }) => {
       <CssBaseline />
       <Sidebar />
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        <Container maxWidth="xl">
         {children}
+        </Container>
       </Box>
     </Box>
   );

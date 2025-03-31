@@ -114,13 +114,13 @@ const Orders = () => {
       valueGetter: (value) =>
       value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
     },
-    // {
-    //   field: "payment_term",
-    //   headerName: "Срок оплаты",
-    //   width: 150,
-    //   valueGetter: (value) =>
-    //   value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
-    // },
+    {
+      field: "payment_term",
+      headerName: "Срок оплаты",
+      width: 150,
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
+    },
     {
       field: "order_payment_time",
       headerName: "Время оплаты заказа (дн)",
@@ -134,13 +134,13 @@ const Orders = () => {
       headerName: "Соответствие срокам оплаты",
       width: 150,
     },
-    // {
-    //   field: "delivery_time",
-    //   headerName: "Срок доставки",
-    //   width: 150,
-    //   valueGetter: (value) =>
-    //   value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
-    // },
+    {
+      field: "delivery_time",
+      headerName: "Срок доставки",
+      width: 150,
+      valueGetter: (value) =>
+      value !== undefined ? new Date(value).toLocaleDateString() : "N/A",
+    },
     {
       field: "delivery_date",
       headerName: "Дата доставки",
@@ -178,7 +178,7 @@ const Orders = () => {
   ];
 
   return (
-    <div style={{ height: 600, width: "100%" }}>
+    <div style={{ height: 900, width: "100%" }}>
       <DataGrid
         rows={orders}
         columns={columns}
