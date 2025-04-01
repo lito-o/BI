@@ -1,99 +1,93 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Box, Grid, Paper, Typography } from "@mui/material";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, LineChart, Line } from "recharts";
+import React, { useEffect, useState } from "react";
+import { Grid } from "@mui/material";
+import DashboardCard from "../components/DashboardCard";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/dashboard";
+const API_URL = "http://localhost:5000/api";
 
-export const Dashboard = () => {
+const Dashboard = () => {
   const [data, setData] = useState({
-    clientsByMonth: [],
-    newClientsByMonth: [],
-    avgOrderValue: [],
-    revenueByMonth: [],
+    completedOrders: { value: 0, change: 0, history: [] },
+    averageOrderCost: { value: 0, change: 0, history: [] },
+    averageOrderTime: { value: 0, change: 0, history: [] },
+    totalClients: { value: 0, change: 0, history: [] },
+    newClients: { value: 0, change: 0, history: [] },
+    totalDebt: { value: 0, change: 0, history: [] },
+    averagePaymentTime: { value: 0, change: 0, history: [] },
   });
 
-  const navigate = useNavigate();
-
   useEffect(() => {
-    if (!localStorage.getItem("token")) {
-      navigate("/login");
-    }
-  }, [navigate]);
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/dashboard`);
+        setData(response.data);
+      } catch (error) {
+        console.error("Ошибка при загрузке данных:", error);
+      }
+    };
 
-  useEffect(() => {
-    axios.get(API_URL).then((res) => setData(res.data));
+    fetchData();
   }, []);
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <Grid container spacing={3}>
-        {/* Количество клиентов */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6">Количество клиентов по месяцам</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.clientsByMonth}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        {/* Новые клиенты */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6">Новые клиенты по месяцам</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={data.newClientsByMonth}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#82ca9d" />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        {/* Средняя стоимость заказа */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6">Средняя стоимость заказа</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={data.avgOrderValue}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#ff7300" />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        {/* Выручка по заказам */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6">Выручка по заказам</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.revenueByMonth}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="revenue" fill="#4caf50" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
+    <Grid container spacing={4}>
+      <Grid item xs={12} md={6} lg={4}>
+        <DashboardCard
+          title="Доля успешно закрытых заказов"
+          value={data.completedOrders.value}
+          change={data.completedOrders.change}
+          data={data.completedOrders.history}
+        />
       </Grid>
-    </Box>
+      <Grid item xs={12} md={6} lg={4}>
+        <DashboardCard
+          title="Средняя стоимость заказа"
+          value={data.averageOrderCost.value}
+          change={data.averageOrderCost.change}
+          data={data.averageOrderCost.history}
+        />
+      </Grid>
+      <Grid item xs={12} md={6} lg={4}>
+        <DashboardCard
+          title="Среднее время выполнения заказа"
+          value={data.averageOrderTime.value}
+          change={data.averageOrderTime.change}
+          data={data.averageOrderTime.history}
+        />
+      </Grid>
+      <Grid item xs={12} md={6} lg={4}>
+        <DashboardCard
+          title="Количество клиентов"
+          value={data.totalClients.value}
+          change={data.totalClients.change}
+          data={data.totalClients.history}
+        />
+      </Grid>
+      <Grid item xs={12} md={6} lg={4}>
+        <DashboardCard
+          title="Количество новых клиентов"
+          value={data.newClients.value}
+          change={data.newClients.change}
+          data={data.newClients.history}
+        />
+      </Grid>
+      <Grid item xs={12} md={6} lg={4}>
+        <DashboardCard
+          title="Общая дебиторская задолженность"
+          value={data.totalDebt.value}
+          change={data.totalDebt.change}
+          data={data.totalDebt.history}
+        />
+      </Grid>
+      <Grid item xs={12} md={6} lg={4}>
+        <DashboardCard
+          title="Среднее время оплаты заказов"
+          value={data.averagePaymentTime.value}
+          change={data.averagePaymentTime.change}
+          data={data.averagePaymentTime.history}
+        />
+      </Grid>
+    </Grid>
   );
 };
 
