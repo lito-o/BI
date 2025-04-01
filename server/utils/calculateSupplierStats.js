@@ -9,8 +9,13 @@ const { Op } = require("sequelize");
 const calculateSupplierStats = async (supplierId) => {
   const deliveries = await Delivery.findAll({ where: { supplierId } });
 
+//   const now = new Date();
+//   const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
+
   const now = new Date();
-  const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
+  const oneYearAgo = now.getFullYear();
+  console.log(oneYearAgo);
+
 
   // Данные за год
   const yearDeliveries = deliveries.filter(d => new Date(d.purchase_date) >= oneYearAgo);

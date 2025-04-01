@@ -111,7 +111,7 @@ const Deliveries = () => {
   ];
 
   return (
-    <div style={{ height: 600, width: "100%" }}>
+    <div style={{ height: 900, width: "100%" }}>
       <DataGrid
         rows={deliveries}
         columns={columns}
