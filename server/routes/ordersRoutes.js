@@ -49,7 +49,7 @@ router.post(
   body("paid_amount").isNumeric().withMessage("paid_amount must be a number"),
   body("request_date").isISO8601().withMessage("request_date must be a valid date"),
   async (req, res) => {
-    console.log("Request body:", req.body); // Логирование входных данных
+    // console.log("Request body:", req.body); // Логирование входных данных
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

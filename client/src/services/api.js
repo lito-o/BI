@@ -51,4 +51,14 @@ export const getDeliveries = async () => {
       return [];
     }
   };
+
+  // export const getDashboard = async () => {
+  //   try {
+  //     const response = await axios.get(`${API_URL}/dashboard`);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error("Ошибка загрузки статистики:", error);
+  //     return [];
+  //   }
+  // };
   
