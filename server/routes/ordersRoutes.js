@@ -4,14 +4,14 @@ const Order = require("../models/Order");
 const Client = require("../models/Client");
 const { body, validationResult } = require("express-validator");
 // Импортируем роутер и функции из clientsRoutes
-const clientsRouter = require("./clientsRoutes");
+const calculateClientStats = require("../utils/calculateClientStats");
 const {
   calculateAvgCheck,
   calculateDebt,
   calculateAvgPaymentTime,
   calculateActivityStatus,
   updateClientFields
-} = require("./clientsRoutes");
+} = require("../utils/calculateClientStats");
 
 // Функция для вычисления полей и обновления записи в базе данных
 async function calculateAndSaveFields(order) {

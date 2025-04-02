@@ -162,7 +162,7 @@ router.get("/", async (req, res) => {
 
     const data = {
       completedOrders: {
-        value: totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0,
+        value: totalOrders > 0 ? completedOrders : 0,
         change: completedOrdersChange,
         history: completedOrdersHistory,
       },

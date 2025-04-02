@@ -4,55 +4,7 @@ const Sequelize = require("sequelize");
 const Client = require("../models/Client");
 const Order = require("../models/Order");
 const { body, validationResult } = require("express-validator");
-
-// Функции для вычисления полей клиента
-async function calculateAvgCheck(clientId) {
-  const orders = await Order.findAll({ where: { clientId } });
-  if (!orders.length) return 0;
-  const totalAmount = orders.reduce((sum, order) => sum + order.total_amount, 0);
-  return totalAmount / orders.length;
-}
-
-async function calculateDebt(clientId) {
-  const orders = await Order.findAll({ where: { clientId} });
-  return orders.reduce((sum, order) => sum + order.left_to_pay, 0);
-}
-// async function calculateDebt(clientId) {
-//   const orders = await Order.findAll({ where: { clientId, payment_date: null } });
-//   return orders.reduce((sum, order) => sum + order.left_to_pay, 0);
-// }
-
-async function calculateAvgPaymentTime(clientId) {
-  const orders = await Order.findAll({ where: { clientId } });
-  const paymentTimes = orders
-    .map(order => order.order_payment_time)
-    .filter(time => time !== "Не определено");
-  if (!paymentTimes.length) return 0;
-  return paymentTimes.reduce((sum, time) => sum + time, 0) / paymentTimes.length;
-}
-
-async function calculateActivityStatus(clientId) {
-  const clientOrdersCount = await Order.count({
-    where: {
-      clientId,
-      request_date: { [Sequelize.Op.gte]: Sequelize.literal("NOW() - INTERVAL '1 month'") },
-    },
-  });
-  const avgOrdersAllClients = await Order.count() / (await Client.count());
-  return clientOrdersCount < avgOrdersAllClients ? "Активный" : "Пассивный";
-}
-
-async function updateClientFields(clientId) {
-  const avgCheck = await calculateAvgCheck(clientId);
-  const debt = await calculateDebt(clientId);
-  const avgPaymentTime = await calculateAvgPaymentTime(clientId);
-  const activityStatus = await calculateActivityStatus(clientId);
-
-  await Client.update(
-    { avg_check: avgCheck, debt, avg_payment_time: avgPaymentTime, activity_status: activityStatus },
-    { where: { id: clientId } }
-  );
-}
+const updateClientFields = require("../utils/calculateClientStats");
 
 // Получить всех клиентов
 router.get("/", async (req, res) => {
@@ -65,19 +17,50 @@ router.get("/", async (req, res) => {
 });
 
 // Добавить нового клиента
-router.post("/", async (req, res) => {
-  try {
-    const { name, type, country, unp, unified_state_register, ministry_taxes_duties } = req.body;
-    const newClient = await Client.create({ name, type, country, unp, unified_state_register, ministry_taxes_duties });
+router.post("/", 
+  [
+    body('name').notEmpty().withMessage('Имя обязательно'),
+    body('type').notEmpty().withMessage('Тип обязателен'),
+    body('country').notEmpty().withMessage('Страна обязательна')
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
-    // Пересчитываем показатели сразу после создания
-    // await calculateSupplierStats(newSupplier.id);
+      const { name, type, country, unp, unified_state_register, ministry_taxes_duties } = req.body;
+      
+      if (!name || !type || !country) {
+        return res.status(400).json({ error: "Обязательные поля: name, type, country" });
+      }
 
-    res.json(newClient);
-  } catch (error) {
-    res.status(500).json({ error: "Ошибка создания клиента" });
+      const newClient = await Client.create({ 
+        name, 
+        type, 
+        country, 
+        unp, 
+        unified_state_register, 
+        ministry_taxes_duties 
+      });
+
+      try {
+        await updateClientFields(newClient.id);
+      } catch (updateError) {
+        console.error('Ошибка при обновлении полей клиента:', updateError);
+      }
+
+      res.json(newClient);
+    } catch (error) {
+      console.error('Ошибка при создании клиента:', error);
+      res.status(500).json({ 
+        error: "Ошибка создания клиента",
+        details: error.message 
+      });
+    }
   }
-});
+);
 
 // Получить клиента по ID
 router.get("/:id", async (req, res) => {
@@ -97,9 +80,3 @@ router.get("/:id", async (req, res) => {
 });
 
 module.exports = router;
-
-module.exports.updateClientFields = updateClientFields;
-module.exports.calculateAvgCheck = calculateAvgCheck;
-module.exports.calculateDebt = calculateDebt;
-module.exports.calculateAvgPaymentTime = calculateAvgPaymentTime;
-module.exports.calculateActivityStatus = calculateActivityStatus;

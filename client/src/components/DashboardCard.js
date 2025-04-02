@@ -4,6 +4,7 @@ import { LineChart, Line, Tooltip, ResponsiveContainer } from "recharts";
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
+    const data = payload[0].payload;
     return (
       <Box sx={{ 
         bgcolor: 'background.paper', 
@@ -12,9 +13,12 @@ const CustomTooltip = ({ active, payload }) => {
         boxShadow: 2,
         border: '1px solid #e0e0e0'
       }}>
-        <Typography variant="body2" color="text.primary" fontWeight={500}>
-          {payload[0].value}
+        <Typography variant="subtitle2" color="text.primary" fontWeight={600}>
+          {data.value}
         </Typography>
+        {/* <Typography variant="caption" color="text.secondary">
+          {data.date}
+        </Typography> */}
       </Box>
     );
   }
