@@ -7,6 +7,9 @@ const Client = db.define("Client", {
   name: { type: DataTypes.STRING, unique: true, allowNull: false }, // Наименование клиента
   type: { type: DataTypes.ENUM("Юридическое лицо", "Физическое лицо"), allowNull: false }, // Вид клиента
   unp: { type: DataTypes.STRING, unique: true, allowNull: false }, // УНП (уникальный номер плательщика)
+  unified_state_register: { type: DataTypes.BOOLEAN, defaultValue: false },
+  ministry_taxes_duties: { type: DataTypes.BOOLEAN, defaultValue: false },
+  country: { type: DataTypes.STRING, allowNull: false, defaultValue: "Беларусь" }, // Страна регистрации
   avg_check: { type: DataTypes.FLOAT, defaultValue: 0 }, // Средний чек
   debt: { type: DataTypes.FLOAT, defaultValue: 0 }, // Дебиторская задолженность
   avg_payment_time: { type: DataTypes.FLOAT, defaultValue: 0 }, // Среднее время оплаты счетов

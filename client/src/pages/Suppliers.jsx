@@ -17,6 +17,8 @@ const Suppliers = () => {
     { field: 'name', headerName: 'Наименование', width: 150 },
     { field: 'type', headerName: 'Вид', width: 150 },
     { field: 'country', headerName: 'Страна', width: 100 },
+    { field: 'unified_state_register', headerName: 'ЕГР', type: 'boolean', width: 150 },
+    { field: 'ministry_taxes_duties', headerName: 'МНС', type: 'boolean', width: 150 },
     { 
       field: 'defective_rate_year', 
       headerName: 'Качество (год)', 

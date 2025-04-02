@@ -42,7 +42,7 @@ const Clients = () => {
         <TableHead>
           <TableRow>
             <TableCell />
-            {["Наименование", "Вид", "УНП", "Средний чек", "Дебиторская задолженность", "Среднее время оплаты", "Активность"].map(
+            {["Наименование", "Вид", "УНП", "ЕГР", "МНС", "Страна", "Средний чек", "Дебиторская задолженность", "Среднее время оплаты", "Активность"].map(
               (column) => (
                 <TableCell key={column}>{column}</TableCell>
               )
@@ -61,6 +61,9 @@ const Clients = () => {
                 <TableCell>{client.name}</TableCell>
                 <TableCell>{client.type}</TableCell>
                 <TableCell>{client.unp}</TableCell>
+                <TableCell>{client.unified_state_register ? 'Действующий' : 'Исключен из ЕГР'}</TableCell>
+                <TableCell>{client.ministry_taxes_duties ? 'Действующий' : 'Ликвидирован'}</TableCell>
+                <TableCell>{client.country}</TableCell>
                 <TableCell>{client.avg_check.toFixed(2)}</TableCell>
                 <TableCell>{client.debt.toFixed(2)}</TableCell>
                 <TableCell>{client.avg_payment_time.toFixed(2)} дней</TableCell>

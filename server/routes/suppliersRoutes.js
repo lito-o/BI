@@ -17,8 +17,8 @@ router.get("/", async (req, res) => {
 // Добавить нового поставщика
 router.post("/", async (req, res) => {
   try {
-    const { name, type, country, replacement_days, assortment_count, delivery_change } = req.body;
-    const newSupplier = await Supplier.create({ name, type, country, replacement_days, assortment_count, delivery_change });
+    const { name, type, country, unp, unified_state_register, ministry_taxes_duties, replacement_days, assortment_count, delivery_change } = req.body;
+    const newSupplier = await Supplier.create({ name, type, country, unp, unified_state_register, ministry_taxes_duties, replacement_days, assortment_count, delivery_change });
 
     // Пересчитываем показатели сразу после создания
     await calculateSupplierStats(newSupplier.id);

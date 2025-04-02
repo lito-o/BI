@@ -6,6 +6,9 @@ const Supplier = db.define("Supplier", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   name: { type: DataTypes.STRING, unique: true, allowNull: false }, // Наименование поставщика
   type: { type: DataTypes.ENUM("Юридическое лицо", "Физическое лицо"), allowNull: false }, // Вид поставщика
+  unp: { type: DataTypes.STRING, unique: true, allowNull: false }, // УНП (уникальный номер плательщика)
+  unified_state_register: { type: DataTypes.BOOLEAN, defaultValue: true },
+  ministry_taxes_duties: { type: DataTypes.BOOLEAN, defaultValue: true },
   country: { type: DataTypes.STRING, allowNull: false, defaultValue: "Беларусь" }, // Страна регистрации
   replacement_days: { type: DataTypes.INTEGER, defaultValue: 0 }, // Срок замены брака
   assortment_count: { type: DataTypes.INTEGER, defaultValue: 0 }, // Количество позиций

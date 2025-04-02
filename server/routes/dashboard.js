@@ -1,7 +1,7 @@
 const express = require("express");
 const Client = require("../models/Client");
 const Order = require("../models/Order");
-const { Op, Sequelize } = require("sequelize"); // Добавлен Sequelize в деструктуризацию
+const { Op, Sequelize } = require("sequelize");
 const moment = require("moment");
 const router = express.Router();
 

@@ -64,6 +64,21 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Добавить нового клиента
+router.post("/", async (req, res) => {
+  try {
+    const { name, type, country, unp, unified_state_register, ministry_taxes_duties } = req.body;
+    const newClient = await Client.create({ name, type, country, unp, unified_state_register, ministry_taxes_duties });
+
+    // Пересчитываем показатели сразу после создания
+    // await calculateSupplierStats(newSupplier.id);
+
+    res.json(newClient);
+  } catch (error) {
+    res.status(500).json({ error: "Ошибка создания клиента" });
+  }
+});
+
 // Получить клиента по ID
 router.get("/:id", async (req, res) => {
   try {

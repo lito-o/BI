@@ -30,8 +30,8 @@ const calculateSupplierStats = async (supplierId) => {
   const avgDeliveryTime = totalDeliveries ? deliveries.reduce((sum, d) => sum + d.delivery_time, 0) / totalDeliveries : 0;
 
   // Рассчитываем новые значения
-  const defectiveRateYear = yearQuantity ? yearDefective / yearQuantity : 0;
-  const defectiveRateTotal = totalQuantity ? totalDefective / totalQuantity : 0;
+  const defectiveRateYear = yearQuantity ? (yearQuantity - yearDefective) / yearQuantity : 0;
+  const defectiveRateTotal = totalQuantity ? (totalQuantity - totalDefective) / totalQuantity : 0;
   const onTimePercentage = totalDeliveries ? totalOnTime / totalDeliveries : 0;
   const rejectedRateYear = defectiveRateYear;
   const receivedQuantity = yearQuantity;
