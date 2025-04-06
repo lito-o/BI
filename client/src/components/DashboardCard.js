@@ -13,12 +13,12 @@ const CustomTooltip = ({ active, payload }) => {
         boxShadow: 2,
         border: '1px solid #e0e0e0'
       }}>
+        <Typography variant="caption" color="text.secondary">
+          {data.month}
+        </Typography>
         <Typography variant="subtitle2" color="text.primary" fontWeight={600}>
             {data.value.toFixed(2)}
         </Typography>
-        {/* <Typography variant="caption" color="text.secondary">
-          {data.date}
-        </Typography> */}
       </Box>
     );
   }

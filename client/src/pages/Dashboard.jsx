@@ -14,7 +14,6 @@ const Dashboard = () => {
     newClients: { value: 0, change: 0, history: [] },
     totalDebt: { value: 0, change: 0, history: [] },
     averagePaymentTime: { value: 0, change: 0, history: [] },
-    conversionRate: { value: 0, change: 0, history: [] },
     salesVolume: { value: 0, change: 0, history: [] },
     productProfitability: { value: 0, change: 0, history: [] },
     salesProfitability: { value: 0, change: 0, history: [] },
@@ -89,14 +88,6 @@ const Dashboard = () => {
           value={data.averagePaymentTime.value}
           change={data.averagePaymentTime.change}
           data={data.averagePaymentTime.history}
-        />
-      </Grid>
-      <Grid item xs={12} md={6} lg={4}>
-        <DashboardCard
-          title="Конверсия лидов в продажи (%)"
-          value={data.conversionRate.value}
-          change={data.conversionRate.change}
-          data={data.conversionRate.history}
         />
       </Grid>
       <Grid item xs={12} md={6} lg={4}>

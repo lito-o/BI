@@ -47,12 +47,23 @@ router.get("/", async (req, res) => {
         request_date: { [Op.gte]: thirtyDaysAgo },
       },
     });
-    const completedOrdersHistory = await getHistoricalData(
-      Order,
-      "id",
-      { confirm_status: "Подтверждён" },
-      ["month"]
+
+    const completedOrdersHistory = await Order.findAll({
+      attributes: [
+        [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("request_date")), "month"],
+        [Sequelize.fn("COUNT", Sequelize.col("id")), "total"],
+        [Sequelize.fn("SUM", Sequelize.literal("CASE WHEN confirm_status = 'Подтверждён' THEN 1 ELSE 0 END")), "completed"],
+      ],
+      group: ["month"],
+      order: [["month", "ASC"]],
+      raw: true,
+    }).then(data => 
+      data.map(item => ({
+        month: moment(item.month).format("YYYY-MM"),
+        value: item.total > 0 ? (item.completed / item.total) * 100 : 0
+      }))
     );
+
     const completedOrdersChange = calculateChange(
       completedOrdersHistory[completedOrdersHistory.length - 1]?.value || 0,
       completedOrdersHistory[completedOrdersHistory.length - 2]?.value || 0
@@ -64,12 +75,22 @@ router.get("/", async (req, res) => {
         request_date: { [Op.gte]: thirtyDaysAgo },
       },
     });
-    const averageOrderCostHistory = await getHistoricalData(
-      Order,
-      "total_amount",
-      {},
-      ["month"]
+
+    const averageOrderCostHistory = await Order.findAll({
+      attributes: [
+        [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("request_date")), "month"],
+        [Sequelize.fn("AVG", Sequelize.col("total_amount")), "value"],
+      ],
+      group: ["month"],
+      order: [["month", "ASC"]],
+      raw: true,
+    }).then(data => 
+      data.map(item => ({
+        month: moment(item.month).format("YYYY-MM"),
+        value: parseFloat(item.value) || 0
+      }))
     );
+
     const averageOrderCostChange = calculateChange(
       averageOrderCostHistory[averageOrderCostHistory.length - 1]?.value || 0,
       averageOrderCostHistory[averageOrderCostHistory.length - 2]?.value || 0
@@ -81,12 +102,22 @@ router.get("/", async (req, res) => {
         request_date: { [Op.gte]: thirtyDaysAgo },
       },
     });
-    const averageOrderTimeHistory = await getHistoricalData(
-      Order,
-      "order_completion_time",
-      {},
-      ["month"]
+    
+    const averageOrderTimeHistory = await Order.findAll({
+      attributes: [
+        [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("request_date")), "month"],
+        [Sequelize.fn("AVG", Sequelize.col("order_completion_time")), "value"],
+      ],
+      group: ["month"],
+      order: [["month", "ASC"]],
+      raw: true,
+    }).then(data => 
+      data.map(item => ({
+        month: moment(item.month).format("YYYY-MM"),
+        value: parseFloat(item.value) || 0
+      }))
     );
+
     const averageOrderTimeChange = calculateChange(
       averageOrderTimeHistory[averageOrderTimeHistory.length - 1]?.value || 0,
       averageOrderTimeHistory[averageOrderTimeHistory.length - 2]?.value || 0
@@ -115,12 +146,14 @@ router.get("/", async (req, res) => {
         createdAt: { [Op.gte]: thirtyDaysAgo },
       },
     });
+
     const newClientsHistory = await getHistoricalData(
       Client,
       "id",
-      { createdAt: { [Op.gte]: thirtyDaysAgo } },
+      {},
       ["month"]
     );
+
     const newClientsChange = calculateChange(
       newClientsHistory[newClientsHistory.length - 1]?.value || 0,
       newClientsHistory[newClientsHistory.length - 2]?.value || 0
@@ -149,28 +182,25 @@ router.get("/", async (req, res) => {
         createdAt: { [Op.gte]: thirtyDaysAgo },
       },
     });
-    const averagePaymentTimeHistory = await getHistoricalData(
-      Client,
-      "avg_payment_time",
-      {},
-      ["month"]
+    
+    const averagePaymentTimeHistory = await Client.findAll({
+      attributes: [
+        [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("createdAt")), "month"],
+        [Sequelize.fn("AVG", Sequelize.col("avg_payment_time")), "value"],
+      ],
+      group: ["month"],
+      order: [["month", "ASC"]],
+      raw: true,
+    }).then(data => 
+      data.map(item => ({
+        month: moment(item.month).format("YYYY-MM"),
+        value: parseFloat(item.value) || 0
+      }))
     );
+
     const averagePaymentTimeChange = calculateChange(
       averagePaymentTimeHistory[averagePaymentTimeHistory.length - 1]?.value || 0,
       averagePaymentTimeHistory[averagePaymentTimeHistory.length - 2]?.value || 0
-    );
-
-    // Конверсия лидов в продажи
-    const conversionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
-    const conversionRateHistory = completedOrdersHistory.map((item, index) => ({
-      month: item.month,
-      value: totalClientsHistory[index]?.value > 0 
-        ? (item.value / totalClientsHistory[index]?.value) * 100 
-        : 0
-    }));
-    const conversionRateChange = calculateChange(
-      conversionRateHistory[conversionRateHistory.length - 1]?.value || 0,
-      conversionRateHistory[conversionRateHistory.length - 2]?.value || 0
     );
 
     // Объем продаж
@@ -271,11 +301,6 @@ router.get("/", async (req, res) => {
         value: totalClients > 0 ? averagePaymentTime / totalClients : 0,
         change: averagePaymentTimeChange,
         history: averagePaymentTimeHistory,
-      },
-      conversionRate: {
-        value: conversionRate,
-        change: conversionRateChange,
-        history: conversionRateHistory,
       },
       salesVolume: {
         value: salesVolume,
