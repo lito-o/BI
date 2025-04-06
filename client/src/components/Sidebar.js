@@ -99,7 +99,8 @@ const Sidebar = () => {
             fontFamily: 'Manrope',
             fontWeight: "500",
             fontSize: "16px",
-            mb: "10px"
+            mb: "10px",
+            // pl: "16px"
           }}>
             Главное меню
           </Typography>

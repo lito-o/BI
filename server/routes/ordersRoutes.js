@@ -25,7 +25,7 @@ async function calculateAndSaveFields(order) {
   const deliveryTime = order.delivery_time ? new Date(order.delivery_time) : null;
 
   order.confirm_status = !confirmDate ? "На рассмотрении" : confirmDate - requestDate > 7 * 24 * 60 * 60 * 1000 ? "Отклонён" : "Подтверждён";
-  order.application_processing_time = confirmDate ? (confirmDate - requestDate) / (1000 * 60 * 60) : null;
+  order.application_processing_time = confirmDate ? (confirmDate - requestDate) / (1000 * 60 * 60 * 24) : null;
   order.marginality = order.total_amount ? order.cost_price / order.total_amount : 0;
   order.profit = order.total_amount - order.cost_price;
   order.left_to_pay = order.total_amount - order.paid_amount;

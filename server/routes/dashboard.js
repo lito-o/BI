@@ -95,7 +95,7 @@ router.get("/", async (req, res) => {
     // Количество клиентов
     const totalClients = await Client.count({
       where: {
-        createdAt: { [Op.gte]: thirtyDaysAgo },
+        // createdAt: { [Op.gte]: thirtyDaysAgo },
       },
     });
     const totalClientsHistory = await getHistoricalData(
@@ -129,7 +129,7 @@ router.get("/", async (req, res) => {
     // Общая дебиторская задолженность
     const totalDebt = await Client.sum("debt", {
       where: {
-        createdAt: { [Op.gte]: thirtyDaysAgo },
+        // createdAt: { [Op.gte]: thirtyDaysAgo },
       },
     });
     const totalDebtHistory = await getHistoricalData(
@@ -160,9 +160,85 @@ router.get("/", async (req, res) => {
       averagePaymentTimeHistory[averagePaymentTimeHistory.length - 2]?.value || 0
     );
 
+    // Конверсия лидов в продажи
+    const conversionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
+    const conversionRateHistory = completedOrdersHistory.map((item, index) => ({
+      month: item.month,
+      value: totalClientsHistory[index]?.value > 0 
+        ? (item.value / totalClientsHistory[index]?.value) * 100 
+        : 0
+    }));
+    const conversionRateChange = calculateChange(
+      conversionRateHistory[conversionRateHistory.length - 1]?.value || 0,
+      conversionRateHistory[conversionRateHistory.length - 2]?.value || 0
+    );
+
+    // Объем продаж
+    const salesVolume = await Order.sum("total_amount", {
+      where: {
+        request_date: { [Op.gte]: thirtyDaysAgo },
+      },
+    });
+    const salesVolumeHistory = await getHistoricalData(
+      Order,
+      "total_amount",
+      {},
+      ["month"]
+    );
+    const salesVolumeChange = calculateChange(
+      salesVolumeHistory[salesVolumeHistory.length - 1]?.value || 0,
+      salesVolumeHistory[salesVolumeHistory.length - 2]?.value || 0
+    );
+
+    // Рентабельность реализованной продукции
+    const profitSum = await Order.sum("profit", {
+      where: {
+        request_date: { [Op.gte]: thirtyDaysAgo },
+      },
+    });
+    const costSum = await Order.sum("cost_price", {
+      where: {
+        request_date: { [Op.gte]: thirtyDaysAgo },
+      },
+    });
+    const productProfitability = costSum > 0 ? (profitSum / costSum) * 100 : 0;
+    const productProfitabilityHistory = await Promise.all([
+      getHistoricalData(Order, "profit", {}, ["month"]),
+      getHistoricalData(Order, "cost_price", {}, ["month"])
+    ]).then(([profitHistory, costHistory]) => 
+      profitHistory.map((item, index) => ({
+        month: item.month,
+        value: costHistory[index]?.value > 0 
+          ? (item.value / costHistory[index]?.value) * 100 
+          : 0
+      }))
+    );
+    const productProfitabilityChange = calculateChange(
+      productProfitabilityHistory[productProfitabilityHistory.length - 1]?.value || 0,
+      productProfitabilityHistory[productProfitabilityHistory.length - 2]?.value || 0
+    );
+
+    // Рентабельность продаж
+    const salesProfitability = salesVolume > 0 ? (profitSum / salesVolume) * 100 : 0;
+    const salesProfitabilityHistory = await Promise.all([
+      getHistoricalData(Order, "profit", {}, ["month"]),
+      getHistoricalData(Order, "total_amount", {}, ["month"])
+    ]).then(([profitHistory, salesHistory]) => 
+      profitHistory.map((item, index) => ({
+        month: item.month,
+        value: salesHistory[index]?.value > 0 
+          ? (item.value / salesHistory[index]?.value) * 100 
+          : 0
+      }))
+    );
+    const salesProfitabilityChange = calculateChange(
+      salesProfitabilityHistory[salesProfitabilityHistory.length - 1]?.value || 0,
+      salesProfitabilityHistory[salesProfitabilityHistory.length - 2]?.value || 0,
+    );
+
     const data = {
       completedOrders: {
-        value: totalOrders > 0 ? completedOrders : 0,
+        value: totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0,
         change: completedOrdersChange,
         history: completedOrdersHistory,
       },
@@ -195,6 +271,26 @@ router.get("/", async (req, res) => {
         value: totalClients > 0 ? averagePaymentTime / totalClients : 0,
         change: averagePaymentTimeChange,
         history: averagePaymentTimeHistory,
+      },
+      conversionRate: {
+        value: conversionRate,
+        change: conversionRateChange,
+        history: conversionRateHistory,
+      },
+      salesVolume: {
+        value: salesVolume,
+        change: salesVolumeChange,
+        history: salesVolumeHistory,
+      },
+      productProfitability: {
+        value: productProfitability,
+        change: productProfitabilityChange,
+        history: productProfitabilityHistory,
+      },
+      salesProfitability: {
+        value: salesProfitability,
+        change: salesProfitabilityChange,
+        history: salesProfitabilityHistory,
       },
     };
 

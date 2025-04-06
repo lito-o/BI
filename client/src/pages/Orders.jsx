@@ -58,7 +58,7 @@ const Orders = () => {
     {
       field: "description",
       headerName: "Описание",
-      width: 200,
+      width: 150,
     },
     {
       field: "total_amount",

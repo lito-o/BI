@@ -132,6 +132,7 @@ const DashboardToolbar = () => {
             display: "flex",
             alignItems: "center",
             border: "0.01px solid #bdc3c7",
+            // boxShadow: "0px 0px 2px 0.1px #bdc3c7",
             borderRadius: 1,
             px: 1,
             color: "#fff",
