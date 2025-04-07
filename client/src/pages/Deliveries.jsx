@@ -1,23 +1,49 @@
 import React, { useEffect, useState } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { LinearProgress } from "@mui/material";
+import { LinearProgress, Alert } from "@mui/material";
 import { getDeliveries } from "../services/api";
 
 const Deliveries = () => {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getDeliveries();
-        setDeliveries(data);
+        setLoading(true);
+        setError(null);
+        
+        const response = await getDeliveries();
+        console.log("API Deliveries Response:", response);
+
+        if (!response) {
+          throw new Error("Пустой ответ от сервера");
+        }
+
+        if (!Array.isArray(response)) {
+          throw new Error("Ожидался массив поставок");
+        }
+
+        // Форматируем данные для DataGrid
+        const formattedDeliveries = response.map(delivery => ({
+          ...delivery,
+          id: delivery.id,
+          supplierName: delivery.Supplier?.name || delivery.supplier?.name || "Неизвестно",
+          quality_of_delivery: delivery.defective_quantity 
+            ? 1 - (delivery.defective_quantity / delivery.quantity)
+            : null
+        }));
+
+        setDeliveries(formattedDeliveries);
       } catch (error) {
         console.error("Ошибка при загрузке данных:", error);
+        setError(error.message);
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
@@ -100,15 +126,21 @@ const Deliveries = () => {
     },
     { field: "status", headerName: "Статус", width: 150 },
     {
-      field: "supplier",
+      field: "supplierName",
       headerName: "Поставщик",
       width: 150,
-      valueGetter: (params) => {
-        if (!params || !params.row || !params.row.supplier) return "Неизвестно";
-        return params.row.supplier.name || "Неизвестно";
-      },
     },
   ];
+
+  if (error) {
+    return (
+      <Alert severity="error">
+        Ошибка загрузки данных: {error}
+        <br />
+        Проверьте консоль для подробностей
+      </Alert>
+    );
+  }
 
   return (
     <div style={{ height: 700, width: "100%" }}>
@@ -126,6 +158,7 @@ const Deliveries = () => {
             sortModel: [{ field: "purchase_date", sort: "desc" }],
           },
         }}
+        getRowId={(row) => row.id}
       />
     </div>
   );

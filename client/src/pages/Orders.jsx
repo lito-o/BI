@@ -182,7 +182,7 @@ const Orders = () => {
       headerName: "Время выполнения заказа (дн)",
       width: 150,
       valueGetter: (value) =>
-        value !== undefined ? value.toFixed(0) : "N/A",
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "status",
