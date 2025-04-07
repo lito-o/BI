@@ -79,4 +79,20 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// endpoint для получения заказов клиента
+router.get("/:clientId/orders", async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      where: {
+        clientId: req.params.clientId
+      },
+      order: [['request_date', 'DESC']] // Сортируем по дате обращения
+    });
+    res.json(orders);
+  } catch (error) {
+    console.error('Ошибка при получении заказов:', error);
+    res.status(500).json({ error: "Ошибка сервера при получении заказов" });
+  }
+});
+
 module.exports = router;

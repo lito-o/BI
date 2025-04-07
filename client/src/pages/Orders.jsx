@@ -66,10 +66,10 @@ const Orders = () => {
     },
     {
       field: "application_processing_time",
-      headerName: "Время обработки заявки (ч)",
+      headerName: "Время обработки заявки (дн)",
       width: 150,
       valueGetter: (value) =>
-        value !== undefined ? value.toFixed(0) : "N/A",
+        value !== undefined ? value.toFixed(2) : "N/A",
     },
     {
       field: "order_ready_date",

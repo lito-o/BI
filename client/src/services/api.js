@@ -34,7 +34,7 @@ export const getDeliveries = async () => {
   
   export const getClientOrders = async (clientId) => {
     try {
-      const response = await axios.get(`${API_URL}/orders?clientId=${clientId}`);
+      const response = await axios.get(`${API_URL}/clients/${clientId}/orders`);
       return response.data;
     } catch (error) {
       console.error(`Ошибка загрузки заказов клиента ${clientId}:`, error);
