@@ -1,23 +1,46 @@
 import React, { useEffect, useState } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { LinearProgress } from "@mui/material"; // Импортируем индикатор загрузки
+import { LinearProgress, Alert } from "@mui/material";
 import { getOrders } from "../services/api";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true); // Состояние для индикатора загрузки
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getOrders();
-        setOrders(data);
+        setLoading(true);
+        setError(null);
+        
+        const response = await getOrders();
+        // console.log("API Response:", response);
+
+        if (!response) {
+          throw new Error("Пустой ответ от сервера");
+        }
+
+        // Проверяем, что response - массив
+        if (!Array.isArray(response)) {
+          throw new Error("Ожидался массив заказов");
+        }
+
+        const formattedOrders = response.map(order => ({
+          ...order,
+          id: order.id,
+          clientName: order.Client?.name || order.client?.name || "Неизвестно"
+        }));
+
+        setOrders(formattedOrders);
       } catch (error) {
         console.error("Ошибка при загрузке данных:", error);
+        setError(error.message);
       } finally {
-        setLoading(false); // Убираем индикатор загрузки после завершения
+        setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
@@ -167,28 +190,33 @@ const Orders = () => {
       width: 120,
     },
     {
-      field: "client",
+      field: "clientName",
       headerName: "Клиент",
-      width: 150,
-      valueGetter: (params) => {
-        if (!params || !params.row || !params.row.client) return "Неизвестно";
-        return params.row.client.name || "Неизвестно";
-      },
-    },
+      width: 150
+    }
   ];
+
+  if (error) {
+    return (
+      <Alert severity="error">
+        Ошибка загрузки данных: {error}
+        <br />
+        Проверьте консоль для подробностей
+      </Alert>
+    );
+  }
 
   return (
     <div style={{ height: 700, width: "100%" }}>
       <DataGrid
         rows={orders}
         columns={columns}
-        loading={loading} // Индикатор загрузки
+        loading={loading}
         pageSize={10}
         rowsPerPageOptions={[10]}
-        checkboxSelection
-        disableSelectionOnClick
+        getRowId={(row) => row.id}
         components={{
-          LoadingOverlay: LinearProgress, // Используем LinearProgress для индикатора загрузки
+          LoadingOverlay: LinearProgress,
         }}
       />
     </div>
