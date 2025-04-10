@@ -14,6 +14,7 @@ const Order = db.define("Order", {
   currency: { type: DataTypes.TEXT, allowNull: false, defaultValue: "BYN" }, // Валюта
   marginality: { type: DataTypes.FLOAT }, // Маржинальность
   profit: { type: DataTypes.FLOAT }, // Прибыль
+  return_on_margin: { type: DataTypes.FLOAT }, // Рентабельность продукции
   paid_amount: { type: DataTypes.FLOAT, allowNull: false, efaultValue: 0,}, // Оплачено
   left_to_pay: { type: DataTypes.FLOAT }, // Осталось оплатить
   payment_date: { type: DataTypes.DATE }, // Дата и время оплаты

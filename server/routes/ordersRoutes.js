@@ -22,6 +22,7 @@ async function calculateAndSaveFields(order) {
   order.application_processing_time = confirmDate ? (confirmDate - requestDate) / (1000 * 60 * 60 * 24) : null;
   order.marginality = order.total_amount ? order.cost_price / order.total_amount : 0;
   order.profit = order.total_amount - order.cost_price;
+  order.return_on_margin = order.profit / order.cost_price;
   order.left_to_pay = order.total_amount - order.paid_amount;
   if (order.left_to_pay !== 0) {
     order.payment_term_status = false;
