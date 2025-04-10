@@ -220,6 +220,23 @@ router.get("/", async (req, res) => {
       salesVolumeHistory[salesVolumeHistory.length - 2]?.value || 0
     );
 
+    // Расходы на реализацию
+    const implementationCosts = await Order.sum("general_costs", {
+      where: {
+        request_date: { [Op.gte]: thirtyDaysAgo },
+      },
+    });
+    const implementationCostsHistory = await getHistoricalData(
+      Order,
+      "general_costs",
+      {},
+      ["month"]
+    );
+    const implementationCostsChange = calculateChange(
+      implementationCostsHistory[implementationCostsHistory.length - 1]?.value || 0,
+      implementationCostsHistory[implementationCostsHistory.length - 2]?.value || 0
+    );
+
     // Рентабельность реализованной продукции
     const profitSum = await Order.sum("profit", {
       where: {
@@ -306,6 +323,11 @@ router.get("/", async (req, res) => {
         value: salesVolume,
         change: salesVolumeChange,
         history: salesVolumeHistory,
+      },
+      implementationCosts: {
+        value: implementationCosts,
+        change: implementationCostsChange,
+        history: implementationCostsHistory,
       },
       productProfitability: {
         value: productProfitability,

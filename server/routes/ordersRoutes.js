@@ -20,6 +20,11 @@ async function calculateAndSaveFields(order) {
 
   order.confirm_status = !confirmDate ? "На рассмотрении" : confirmDate - requestDate > 7 * 24 * 60 * 60 * 1000 ? "Отклонён" : "Подтверждён";
   order.application_processing_time = confirmDate ? (confirmDate - requestDate) / (1000 * 60 * 60 * 24) : null;
+  
+  order.general_costs = order.transportation_costs + order.labor_costs + order.social_contributions + order.rental_costs + order.maintenance_premises + order.amortization + order.energy_costs + order.taxes + order.staff_labor_costs + order.other_costs;
+  
+  order.cost_price = order.cost + order.general_costs;
+
   order.marginality = order.total_amount ? order.cost_price / order.total_amount : 0;
   order.profit = order.total_amount - order.cost_price;
   order.return_on_margin = order.profit / order.cost_price;

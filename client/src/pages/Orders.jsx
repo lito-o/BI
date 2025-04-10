@@ -158,6 +158,7 @@ const Orders = () => {
       width: 150,
     },
     numberColumn("total_amount", "Сумма заказа"),
+    numberColumn("general_costs", "Расходы на реализацию"),
     numberColumn("cost_price", "Себестоимость"),
     {
       field: "currency",
@@ -228,9 +229,9 @@ const Orders = () => {
       <Button
         onClick={exportToExcel}
         variant="contained"
-        style={{ marginBottom: 10 }}
+        sx={{mt: "18px", mb: "10px", backgroundColor: "#252525"}}
       >
-        Экспорт в Excel
+        Экспорт
       </Button>
       <DataGrid
         apiRef={apiRef}

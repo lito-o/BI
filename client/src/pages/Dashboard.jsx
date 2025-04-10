@@ -15,6 +15,7 @@ const Dashboard = () => {
     totalDebt: { value: 0, change: 0, history: [] },
     averagePaymentTime: { value: 0, change: 0, history: [] },
     salesVolume: { value: 0, change: 0, history: [] },
+    implementationCosts: { value: 0, change: 0, history: [] },
     productProfitability: { value: 0, change: 0, history: [] },
     salesProfitability: { value: 0, change: 0, history: [] },
   });
@@ -96,6 +97,14 @@ const Dashboard = () => {
           value={data.salesVolume.value}
           change={data.salesVolume.change}
           data={data.salesVolume.history}
+        />
+      </Grid>
+      <Grid item xs={12} md={6} lg={4}>
+        <DashboardCard
+          title="Расходы на реализацию (руб)"
+          value={data.implementationCosts.value}
+          change={data.implementationCosts.change}
+          data={data.implementationCosts.history}
         />
       </Grid>
       <Grid item xs={12} md={6} lg={4}>
