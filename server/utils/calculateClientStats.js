@@ -35,7 +35,7 @@ async function calculateAvgCheck(clientId) {
       },
     });
     const avgOrdersAllClients = await Order.count() / (await Client.count());
-    return clientOrdersCount < avgOrdersAllClients ? "Активный" : "Пассивный";
+    return clientOrdersCount > avgOrdersAllClients ? "Активный" : "Пассивный";
   }
   
   async function updateClientFields(clientId) {

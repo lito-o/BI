@@ -1,6 +1,46 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api"; // Адрес сервера
+const API_URL = "http://localhost:5000/api";
+
+export const getOrders = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/orders`);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка загрузки заказов:", error);
+    throw error;
+  }
+};
+
+export const createOrder = async (orderData) => {
+  try {
+    const response = await axios.post(`${API_URL}/orders`, orderData);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка создания заказа:", error);
+    throw error;
+  }
+};
+
+export const updateOrder = async (id, orderData) => {
+  try {
+    const response = await axios.put(`${API_URL}/orders/${id}`, orderData);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка обновления заказа:", error);
+    throw error;
+  }
+};
+
+export const deleteOrder = async (id) => {
+  try {
+    const response = await axios.delete(`${API_URL}/orders/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка удаления заказа:", error);
+    throw error;
+  }
+};
 
 export const getSuppliers = async () => {
   try {
@@ -38,16 +78,6 @@ export const getDeliveries = async () => {
       return response.data;
     } catch (error) {
       console.error(`Ошибка загрузки заказов клиента ${clientId}:`, error);
-      return [];
-    }
-  };
-  
-  export const getOrders = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/orders`);
-      return response.data;
-    } catch (error) {
-      console.error("Ошибка загрузки заказов:", error);
       return [];
     }
   };

@@ -3,13 +3,7 @@ const router = express.Router();
 const Order = require("../models/Order");
 const Client = require("../models/Client");
 const { body, validationResult } = require("express-validator");
-// Импортируем роутер и функции из clientsRoutes
-const calculateClientStats = require("../utils/calculateClientStats");
 const {
-  calculateAvgCheck,
-  calculateDebt,
-  calculateAvgPaymentTime,
-  calculateActivityStatus,
   updateClientFields
 } = require("../utils/calculateClientStats");
 
@@ -25,14 +19,21 @@ async function calculateAndSaveFields(order) {
   const deliveryTime = order.delivery_time ? new Date(order.delivery_time) : null;
 
   order.confirm_status = !confirmDate ? "На рассмотрении" : confirmDate - requestDate > 7 * 24 * 60 * 60 * 1000 ? "Отклонён" : "Подтверждён";
-  order.application_processing_time = confirmDate ? (confirmDate - requestDate) / (1000 * 60 * 60) : null;
+  order.application_processing_time = confirmDate ? (confirmDate - requestDate) / (1000 * 60 * 60 * 24) : null;
   order.marginality = order.total_amount ? order.cost_price / order.total_amount : 0;
   order.profit = order.total_amount - order.cost_price;
   order.left_to_pay = order.total_amount - order.paid_amount;
-  order.order_payment_time = orderReadyDate && paymentDate 
-    ? Math.abs(orderReadyDate - paymentDate) / (1000 * 60 * 60) 
-    : 0;
-  order.payment_term_status = paymentDate && paymentTerm ? paymentDate <= paymentTerm ? true : false : null;
+  if (order.left_to_pay !== 0) {
+    order.payment_term_status = false;
+    order.order_payment_time = 0;
+  } else {
+    order.order_payment_time = orderReadyDate && paymentDate
+      ? Math.abs(orderReadyDate - paymentDate) / (1000 * 60 * 60)
+      : 0;
+    order.payment_term_status = paymentDate && paymentTerm
+      ? paymentDate <= paymentTerm
+      : null;
+  }
   order.delivery_status = deliveryDate && deliveryTime ? deliveryDate <= deliveryTime ? true : false : null;
   order.order_completion_time = deliveryDate ? (deliveryDate - requestDate) / (1000 * 60 * 60 * 24) : null;
   order.status = !confirmDate ? "На рассмотрении" : order.confirm_status === "Подтверждён" ? "Подтвержден" : "Не подтвержден";
@@ -40,37 +41,53 @@ async function calculateAndSaveFields(order) {
   await order.save();
 }
 
-// Создать новый заказ
+// Создать новый заказ или массив заказов
 router.post(
   "/",
-  body("clientId").isInt().withMessage("clientId must be an integer"),
-  body("total_amount").isNumeric().withMessage("total_amount must be a number"),
-  body("cost_price").isNumeric().withMessage("cost_price must be a number"),
-  body("paid_amount").isNumeric().withMessage("paid_amount must be a number"),
-  body("request_date").isISO8601().withMessage("request_date must be a valid date"),
+  body("clientId").optional().isInt().withMessage("clientId must be an integer"),
+  body("total_amount").optional().isNumeric().withMessage("total_amount must be a number"),
+  body("cost_price").optional().isNumeric().withMessage("cost_price must be a number"),
+  body("paid_amount").optional().isNumeric().withMessage("paid_amount must be a number"),
+  body("request_date").optional().isISO8601().withMessage("request_date must be a valid date"),
+  body("orders.*.clientId").optional().isInt().withMessage("clientId must be an integer"),
+  body("orders.*.total_amount").optional().isNumeric().withMessage("total_amount must be a number"),
+  body("orders.*.cost_price").optional().isNumeric().withMessage("cost_price must be a number"),
+  body("orders.*.paid_amount").optional().isNumeric().withMessage("paid_amount must be a number"),
+  body("orders.*.request_date").optional().isISO8601().withMessage("request_date must be a valid date"),
   async (req, res) => {
-    // console.log("Request body:", req.body); // Логирование входных данных
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const client = await Client.findByPk(req.body.clientId);
-      if (!client) {
-        return res.status(404).json({ error: "Клиент не найден" });
+      let ordersData;
+      if (req.body.orders && Array.isArray(req.body.orders)) {
+        // Обработка массива заказов
+        ordersData = req.body.orders;
+      } else {
+        // Обработка одного заказа
+        ordersData = [req.body];
       }
 
-      const order = await Order.create(req.body);
-      await calculateAndSaveFields(order);
+      const createdOrders = [];
+      for (const orderData of ordersData) {
+        const client = await Client.findByPk(orderData.clientId);
+        if (!client) {
+          return res.status(404).json({ error: "Клиент не найден" });
+        }
 
-      // Обновляем поля клиента
-      await updateClientFields(order.clientId);
+        const order = await Order.create(orderData);
+        await calculateAndSaveFields(order);
+        // Обновляем поля клиента
+        await updateClientFields(order.clientId);
+        createdOrders.push(order);
+      }
 
-      res.status(201).json(order);
+      res.status(201).json(createdOrders);
     } catch (error) {
-      console.error("Error creating order:", error); // Логирование ошибки
-      res.status(500).json({ error: "Ошибка создания заказа" });
+      console.error("Error creating orders:", error); // Логирование ошибки
+      res.status(500).json({ error: "Ошибка создания заказов" });
     }
   }
 );
@@ -103,10 +120,8 @@ router.put("/:id", async (req, res) => {
     if (!order) return res.status(404).json({ error: "Заказ не найден" });
     await order.update(req.body);
     await calculateAndSaveFields(order);
-
     // Обновляем поля клиента
     await updateClientFields(order.clientId);
-
     res.json(order);
   } catch (error) {
     res.status(500).json({ error: "Ошибка обновления заказа" });

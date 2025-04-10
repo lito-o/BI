@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const Sequelize = require("sequelize");
 const Client = require("../models/Client");
-const Order = require("../models/Order");
 const { body, validationResult } = require("express-validator");
 const updateClientFields = require("../utils/calculateClientStats");
 
@@ -16,12 +15,15 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Добавить нового клиента
-router.post("/", 
+// Добавить нового клиента или массив клиентов
+router.post("/",
   [
-    body('name').notEmpty().withMessage('Имя обязательно'),
-    body('type').notEmpty().withMessage('Тип обязателен'),
-    body('country').notEmpty().withMessage('Страна обязательна')
+    body('name').optional().notEmpty().withMessage('Имя обязательно'),
+    body('type').optional().notEmpty().withMessage('Тип обязателен'),
+    body('country').optional().notEmpty().withMessage('Страна обязательна'),
+    body('clients.*.name').optional().notEmpty().withMessage('Имя обязательно'),
+    body('clients.*.type').optional().notEmpty().withMessage('Тип обязателен'),
+    body('clients.*.country').optional().notEmpty().withMessage('Страна обязательна')
   ],
   async (req, res) => {
     try {
@@ -30,33 +32,47 @@ router.post("/",
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { name, type, country, unp, unified_state_register, ministry_taxes_duties } = req.body;
-      
-      if (!name || !type || !country) {
-        return res.status(400).json({ error: "Обязательные поля: name, type, country" });
+      let clientsData;
+      if (req.body.clients && Array.isArray(req.body.clients)) {
+        // Обработка массива клиентов
+        clientsData = req.body.clients;
+      } else {
+        // Обработка одного клиента
+        clientsData = [req.body];
       }
 
-      const newClient = await Client.create({ 
-        name, 
-        type, 
-        country, 
-        unp, 
-        unified_state_register, 
-        ministry_taxes_duties 
-      });
+      const createdClients = [];
+      for (const clientData of clientsData) {
+        const { name, type, country, unp, unified_state_register, ministry_taxes_duties } = clientData;
 
-      try {
-        await updateClientFields(newClient.id);
-      } catch (updateError) {
-        console.error('Ошибка при обновлении полей клиента:', updateError);
+        if (!name || !type || !country) {
+          return res.status(400).json({ error: "Обязательные поля: name, type, country" });
+        }
+
+        const newClient = await Client.create({
+          name,
+          type,
+          country,
+          unp,
+          unified_state_register,
+          ministry_taxes_duties
+        });
+
+        try {
+          await updateClientFields(newClient.id);
+        } catch (updateError) {
+          console.error('Ошибка при обновлении полей клиента:', updateError);
+        }
+
+        createdClients.push(newClient);
       }
 
-      res.json(newClient);
+      res.json(createdClients);
     } catch (error) {
       console.error('Ошибка при создании клиента:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Ошибка создания клиента",
-        details: error.message 
+        details: error.message
       });
     }
   }
@@ -67,10 +83,8 @@ router.get("/:id", async (req, res) => {
   try {
     const client = await Client.findByPk(req.params.id);
     if (!client) return res.status(404).json({ error: "Клиент не найден" });
-
     // Обновляем вычисляемые поля перед отправкой
     await updateClientFields(client.id);
-
     // Получаем обновленного клиента из базы данных
     const updatedClient = await Client.findByPk(client.id);
     res.json(updatedClient);
