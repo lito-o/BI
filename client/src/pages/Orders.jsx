@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   DataGrid,
   GridToolbarQuickFilter,
@@ -122,6 +123,102 @@ const Orders = () => {
     XLSX.writeFile(wb, "orders.xlsx");
   };
 
+  const handleImportExcel = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+  
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+  
+      const requiredFields = [
+        "clientId", "request_date", "total_amount", "paid_amount"
+      ];
+  
+      const numberFields = [
+        "total_amount", "paid_amount", "transportation_costs", "labor_costs",
+        "social_contributions", "rental_costs", "maintenance_premises",
+        "amortization", "energy_costs", "taxes", "staff_labor_costs", "other_costs", "cost"
+      ];
+  
+      const dateFields = [
+        "request_date", "confirm_date", "order_ready_date",
+        "payment_date", "payment_term", "delivery_date", "delivery_time"
+      ];
+  
+      const clientIds = clients.map(c => c.id);
+  
+      const errors = [];
+  
+      jsonData.forEach((row, idx) => {
+        const rowNumber = idx + 2; // с учётом заголовка
+  
+        // Проверка обязательных полей
+        requiredFields.forEach(field => {
+          if (!row[field] && row[field] !== 0) {
+            errors.push(`Строка ${rowNumber}: отсутствует поле "${field}"`);
+          }
+        });
+  
+        // Проверка clientId
+        if (!clientIds.includes(row.clientId)) {
+          errors.push(`Строка ${rowNumber}: clientId ${row.clientId} не найден среди клиентов`);
+        }
+  
+        // Проверка числовых полей
+        numberFields.forEach(field => {
+          if (row[field] !== undefined && isNaN(Number(row[field]))) {
+            errors.push(`Строка ${rowNumber}: поле "${field}" должно быть числом`);
+          }
+        });
+  
+        // Проверка формата дат
+        dateFields.forEach(field => {
+          if (row[field] && isNaN(new Date(row[field]).getTime())) {
+            errors.push(`Строка ${rowNumber}: поле "${field}" должно быть валидной датой`);
+          }
+        });
+      });
+  
+      if (errors.length > 0) {
+        alert("Найдены ошибки в Excel-файле:\n" + errors.join("\n"));
+        return;
+      }
+  
+      const response = await axios.post("http://localhost:5000/api/orders", {
+        orders: jsonData,
+      });
+  
+      alert(`Импортировано заказов: ${response.data.length}`);
+      const updatedOrders = await getOrders();
+      const formatted = updatedOrders.map(order => ({
+        ...order,
+        id: order.id,
+        clientName: order.Client?.name || order.client?.name || "Неизвестно",
+      }));
+      setOrders(formatted);
+    } catch (error) {
+      console.error("Ошибка импорта:", error);
+      alert("Ошибка при импорте заказов. См. консоль.");
+    }
+  };
+  
+  const [clients, setClients] = useState([]);
+
+useEffect(() => {
+  const fetchClients = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/clients");
+      setClients(response.data);
+    } catch (error) {
+      console.error("Ошибка загрузки клиентов:", error);
+    }
+  };
+  fetchClients();
+}, []);
+
   const dateColumn = (field, headerName) => ({
     field,
     headerName,
@@ -229,28 +326,36 @@ const Orders = () => {
       <Button
         onClick={exportToExcel}
         variant="contained"
-        sx={{mt: "18px", mb: "10px", backgroundColor: "#252525"}}
+        sx={{width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525"}}
       >
         Экспорт
       </Button>
+      <Button
+        component="label"
+        variant="contained"
+        sx={{ width: "90px", mt: "18px", mb: "10px", ml: 2, backgroundColor: "#252525" }}
+      >
+        Импорт
+      <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
+      </Button>
       <DataGrid
-        apiRef={apiRef}
-        rows={orders}
-        columns={columns}
-        loading={loading}
-        pageSize={10}
-        rowsPerPageOptions={[10]}
-        getRowId={(row) => row.id}
-        components={{
-          LoadingOverlay: LinearProgress,
-          Toolbar: CustomToolbar,
-        }}
-        filterModel={filterModel}
-        onFilterModelChange={setFilterModel}
-        sortModel={sortModel}
-        onSortModelChange={setSortModel}
-        sortingOrder={["asc", "desc"]}
-      />
+  apiRef={apiRef}
+  rows={orders}
+  columns={columns}
+  loading={loading}
+  pageSize={10}
+  rowsPerPageOptions={[10]}
+  getRowId={(row) => row.id}
+  slots={{
+    loadingOverlay: LinearProgress,
+    toolbar: CustomToolbar,
+  }}
+  filterModel={filterModel}
+  onFilterModelChange={setFilterModel}
+  sortModel={sortModel}
+  onSortModelChange={setSortModel}
+  sortingOrder={["asc", "desc"]}
+/>
     </div>
   );
 };

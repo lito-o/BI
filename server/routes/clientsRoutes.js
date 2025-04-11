@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Sequelize = require("sequelize");
 const Client = require("../models/Client");
+const Order = require("../models/Order");
 const { body, validationResult } = require("express-validator");
 const updateClientFields = require("../utils/calculateClientStats");
 
