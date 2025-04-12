@@ -32,6 +32,16 @@ export const createDelivery = async (deliveryData) => {
   }
 };
 
+export const createSupplier = async (supplierData) => {
+  try {
+    const response = await axios.post(`${API_URL}/suppliers`, supplierData);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка создания поставщиков:", error);
+    throw error;
+  }
+};
+
 export const updateOrder = async (id, orderData) => {
   try {
     const response = await axios.put(`${API_URL}/orders/${id}`, orderData);
