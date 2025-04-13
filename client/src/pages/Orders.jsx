@@ -2,26 +2,15 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
   DataGrid,
-  GridToolbarQuickFilter,
-  GridToolbarContainer,
   useGridApiRef,
   gridFilteredSortedRowIdsSelector,
   gridVisibleColumnFieldsSelector,
 } from "@mui/x-data-grid";
-import { LinearProgress, Alert, Button } from "@mui/material";
+import { LinearProgress, Alert } from "@mui/material";
 import { getOrders } from "../services/api";
 import * as XLSX from "xlsx";
-
-const CustomToolbar = () => (
-  <GridToolbarContainer>
-    <GridToolbarQuickFilter
-      quickFilterParser={(searchInput) =>
-        searchInput.split(" ").filter((word) => word.length > 0)
-      }
-      debounceMs={300}
-    />
-  </GridToolbarContainer>
-);
+import CustomToolbar from "../components/CustomToolbar";
+import Buttons from "../components/Buttons";
 
 const Orders = () => {
   const apiRef = useGridApiRef();
@@ -292,21 +281,7 @@ const Orders = () => {
 
   return (
     <div style={{ height: 750, width: "100%" }}>
-      <Button
-        onClick={exportToExcel}
-        variant="contained"
-        sx={{ width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525" }}
-      >
-        Экспорт
-      </Button>
-      <Button
-        component="label"
-        variant="contained"
-        sx={{ width: "90px", mt: "18px", mb: "10px", ml: 2, backgroundColor: "#252525" }}
-      >
-        Импорт
-        <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
-      </Button>
+      <Buttons exportToExcel={exportToExcel} handleImportExcel={handleImportExcel} />
 
       <DataGrid
         initialState={{

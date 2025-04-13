@@ -2,28 +2,15 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
   DataGrid,
-  GridToolbarQuickFilter,
-  GridToolbarContainer,
   useGridApiRef,
   gridFilteredSortedRowIdsSelector,
   gridVisibleColumnFieldsSelector,
 } from "@mui/x-data-grid";
-import { LinearProgress, Alert, Button } from "@mui/material";
+import { LinearProgress, Alert } from "@mui/material";
 import { getSuppliers } from "../services/api";
 import * as XLSX from "xlsx";
-
-const CustomToolbar = () => (
-  <GridToolbarContainer>
-    <GridToolbarQuickFilter
-      quickFilterParser={(searchInput) =>
-        searchInput
-          .split(" ")
-          .filter((word) => word.length > 0)
-      }
-      debounceMs={300}
-    />
-  </GridToolbarContainer>
-);
+import CustomToolbar from "../components/CustomToolbar";
+import Buttons from "../components/Buttons";
 
 const Suppliers = () => {
   const apiRef = useGridApiRef();
@@ -68,64 +55,46 @@ const Suppliers = () => {
 
   const exportToExcel = () => {
     if (!apiRef.current) return;
-
     const filteredSortedRowIds = gridFilteredSortedRowIdsSelector(apiRef);
     const visibleColumns = gridVisibleColumnFieldsSelector(apiRef);
-
-    const exportData = filteredSortedRowIds.map(id => {
+    const exportData = filteredSortedRowIds.map((id) => {
       const row = apiRef.current.getRow(id);
       const rowData = {};
-
-      visibleColumns.forEach(field => {
-        const column = columns.find(col => col.field === field);
+      visibleColumns.forEach((field) => {
+        const column = columns.find((col) => col.field === field);
         if (!column) return;
-
         let value = row[field];
         if (column.valueGetter) {
           value = column.valueGetter(value, row);
         }
-
-        rowData[column.headerName] = value !== undefined ? value : '';
+        rowData[column.headerName] = value !== undefined ? value : "";
       });
-
       return rowData;
     });
-
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Suppliers");
-    XLSX.writeFile(wb, "suppliers.xlsx");
+    XLSX.writeFile(wb, "Поставщики.xlsx");
   };
 
   const handleImportExcel = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
       const fieldToHeaderMap = {};
-      columns.forEach(col => {
+      columns.forEach((col) => {
         fieldToHeaderMap[col.headerName] = col.field;
       });
-
-      const requiredFields = [
-        "Наименование", "Вид", "Страна", "УНП"
-      ];
-
-      const numberFields = [
-        "Срок замены", "Ассортимент"
-      ];
-
+      const requiredFields = ["Наименование", "Вид", "Страна", "УНП"];
+      const numberFields = ["Срок замены", "Ассортимент"];
       const errors = [];
-
       jsonData.forEach((row, idx) => {
         const rowNumber = idx + 2;
-
-        requiredFields.forEach(headerName => {
+        requiredFields.forEach((headerName) => {
           const field = fieldToHeaderMap[headerName];
           if (!row[headerName] && row[headerName] !== 0) {
             errors.push(`Строка ${rowNumber}: отсутствует поле "${headerName}"`);
@@ -134,33 +103,28 @@ const Suppliers = () => {
             errors.push(`Строка ${rowNumber}: УНП должен состоять из 9 цифр`);
           }
         });
-
-        numberFields.forEach(headerName => {
+        numberFields.forEach((headerName) => {
           const field = fieldToHeaderMap[headerName];
           if (row[headerName] !== undefined && isNaN(Number(row[headerName]))) {
             errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть числом`);
           }
         });
       });
-
       if (errors.length > 0) {
         alert("Найдены ошибки в Excel-файле:\n" + errors.join("\n"));
         return;
       }
-
-      const mappedJsonData = jsonData.map(row => {
+      const mappedJsonData = jsonData.map((row) => {
         const mappedRow = {};
-        Object.keys(row).forEach(headerName => {
+        Object.keys(row).forEach((headerName) => {
           const field = fieldToHeaderMap[headerName];
           mappedRow[field] = row[headerName];
         });
         return mappedRow;
       });
-
       const response = await axios.post("http://localhost:5000/api/suppliers", {
         suppliers: mappedJsonData,
       });
-
       alert(`Импортировано поставщиков: ${response.data.length}`);
       const updatedSuppliers = await getSuppliers();
       setSuppliers(updatedSuppliers);
@@ -184,57 +148,41 @@ const Suppliers = () => {
     headerName,
     width,
     valueFormatter: (value) =>
-      value != null ? `${(value * 100).toFixed(2)} %` : '',
+      value != null ? `${(value * 100).toFixed(2)} %` : "",
     type: "number",
   });
 
   const columns = [
-    { field: 'name', headerName: 'Наименование', width: 150 },
-    { field: 'type', headerName: 'Вид', width: 150 },
-    { field: 'country', headerName: 'Страна', width: 100 },
-    { field: 'unp', headerName: 'УНП', width: 100 },
-    { field: 'unified_state_register', headerName: 'ЕГР', type: 'boolean', width: 150 },
-    { field: 'ministry_taxes_duties', headerName: 'МНС', type: 'boolean', width: 150 },
-    percentageColumn('defective_rate_year', 'Качество (год)'),
-    percentageColumn('defective_rate_total', 'Качество (всё время)'),
-    percentageColumn('on_time_percentage', 'Процент вовремя'),
-    numberColumn('replacement_days', 'Срок замены', 0),
-    numberColumn('assortment_count', 'Ассортимент', 0),
-    { field: 'delivery_change', headerName: 'Изменение срока', type: 'boolean', width: 150 },
-    numberColumn('avg_delivery_time', 'Среднее время доставки', 0),
-    numberColumn('received_quantity', 'Количество поставок', 0),
-    percentageColumn('rejected_rate_year', 'Доля отклоненного товара', 150),
-    { field: 'category', headerName: 'Категория', width: 150 },
-  ];
-
-  if (error) {
+    { field: "name", headerName: "Наименование", width: 150 },
+    { field: "type", headerName: "Вид", width: 150 },
+    { field: "country", headerName: "Страна", width: 100 },
+    { field: "unp", headerName: "УНП", width: 100 },
+    { field: "unified_state_register", headerName: "ЕГР", type: "boolean", width: 150 },
+    { field: "ministry_taxes_duties", headerName: "МНС", type: "boolean", width: 150 },
+    percentageColumn("defective_rate_year", "Качество (год)"),
+    percentageColumn("defective_rate_total", "Качество (всё время)"),
+    percentageColumn("on_time_percentage", "Процент вовремя"),
+    numberColumn("replacement_days", "Срок замены", 0),
+    numberColumn("assortment_count", "Ассортимент", 0),
+    { field: "delivery_change", headerName: "Изменение срока", type: "boolean", width: 150 },
+    numberColumn("avg_delivery_time", "Среднее время доставки", 0),
+    numberColumn("received_quantity", "Количество поставок", 0),
+    percentageColumn("rejected_rate_year", "Доля отклоненного товара", 150),
+    { field: "category", headerName: "Категория", width: 150 },
+    ];
+    if (error) {
     return (
-      <Alert severity="error">
-        Ошибка загрузки данных: {error}
-        <br />
-        Проверьте консоль для подробностей
-      </Alert>
+    <Alert severity="error">
+    Ошибка загрузки данных: {error}
+    <br />
+    Проверьте консоль для подробностей
+    </Alert>
     );
-  }
-
-  return (
+    }
+    return (
     <div style={{ height: 750, width: "100%" }}>
-      <Button
-        onClick={exportToExcel}
-        variant="contained"
-        sx={{ width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525" }}
-      >
-        Экспорт
-        </Button>
-  <Button
-    component="label"
-    variant="contained"
-    sx={{ width: "90px", mt: "18px", mb: "10px", ml: 2, backgroundColor: "#252525" }}
-  >
-    Импорт
-    <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
-  </Button>
-  <DataGrid
+    <Buttons exportToExcel={exportToExcel} handleImportExcel={handleImportExcel} />
+    <DataGrid
     apiRef={apiRef}
     rows={suppliers}
     columns={columns}
@@ -243,16 +191,16 @@ const Suppliers = () => {
     rowsPerPageOptions={[10]}
     getRowId={(row) => row.id}
     slots={{
-      loadingOverlay: LinearProgress,
-      toolbar: CustomToolbar,
+    loadingOverlay: LinearProgress,
+    toolbar: CustomToolbar,
     }}
     filterModel={filterModel}
     onFilterModelChange={setFilterModel}
     sortModel={sortModel}
     onSortModelChange={setSortModel}
     sortingOrder={["asc", "desc"]}
-  />
-</div>
-);
-};
-export default Suppliers;
+    />
+    </div>
+    );
+    };
+    export default Suppliers;
