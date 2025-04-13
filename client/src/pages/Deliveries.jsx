@@ -31,12 +31,10 @@ const Deliveries = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [suppliers, setSuppliers] = useState([]);
-
   const [filterModel, setFilterModel] = useState(() => {
     const saved = localStorage.getItem("deliveriesFilterModel");
     return saved ? JSON.parse(saved) : { items: [], logicOperator: "and" };
   });
-
   const [sortModel, setSortModel] = useState(() => {
     const saved = localStorage.getItem("deliveriesSortModel");
     return saved ? JSON.parse(saved) : [];
@@ -47,9 +45,8 @@ const Deliveries = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        const response = await getDeliveries();
 
+        const response = await getDeliveries();
         if (!response) throw new Error("Пустой ответ от сервера");
         if (!Array.isArray(response)) throw new Error("Ожидался массив поставок");
 
@@ -57,7 +54,7 @@ const Deliveries = () => {
           ...delivery,
           id: delivery.id,
           supplierName: delivery.Supplier?.name || delivery.supplier?.name || "Неизвестно",
-          quality_of_delivery: delivery.defective_quantity 
+          quality_of_delivery: delivery.defective_quantity
             ? 1 - (delivery.defective_quantity / delivery.quantity)
             : null
         }));
@@ -83,6 +80,7 @@ const Deliveries = () => {
         console.error("Ошибка загрузки поставщиков:", error);
       }
     };
+
     fetchSuppliers();
   }, []);
 
@@ -103,7 +101,7 @@ const Deliveries = () => {
     const exportData = filteredSortedRowIds.map(id => {
       const row = apiRef.current.getRow(id);
       const rowData = {};
-      
+
       visibleColumns.forEach(field => {
         const column = columns.find(col => col.field === field);
         if (!column) return;
@@ -113,7 +111,7 @@ const Deliveries = () => {
           value = column.valueGetter(value, row);
         }
 
-        rowData[field] = value !== undefined ? value : '';
+        rowData[column.headerName] = value !== undefined ? value : '';
       });
 
       return rowData;
@@ -128,71 +126,88 @@ const Deliveries = () => {
   const handleImportExcel = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-  
+
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
+
+      const fieldToHeaderMap = {};
+      columns.forEach(col => {
+        fieldToHeaderMap[col.headerName] = col.field;
+      });
+
       const requiredFields = [
-        "article", "name", "quantity", "price_per_unit", "supplierId"
+        "Артикул", "Наименование", "Количество", "Цена за единицу", "Номер"
       ];
-  
+
       const numberFields = [
-        "quantity", "defective_quantity", "price_per_unit", "total_price"
+        "Количество", "Количество брака", "Цена за единицу"
       ];
-  
+
       const dateFields = [
-        "purchase_date", "arrival_date", "delivery_term"
+        "Дата покупки", "Дата поступления", "Срок доставки"
       ];
-  
+
       const supplierIds = suppliers.map(s => s.id);
-  
+
       const errors = [];
-  
+
       jsonData.forEach((row, idx) => {
         const rowNumber = idx + 2;
-  
-        requiredFields.forEach(field => {
-          if (!row[field] && row[field] !== 0) {
-            errors.push(`Строка ${rowNumber}: отсутствует поле "${field}"`);
+
+        requiredFields.forEach(headerName => {
+          const field = fieldToHeaderMap[headerName];
+          if (!row[headerName] && row[headerName] !== 0) {
+            errors.push(`Строка ${rowNumber}: отсутствует поле "${headerName}"`);
           }
         });
-  
-        if (!supplierIds.includes(row.supplierId)) {
-          errors.push(`Строка ${rowNumber}: supplierId ${row.supplierId} не найден среди поставщиков`);
+
+        if (!supplierIds.includes(row["Номер"])) {
+          errors.push(`Строка ${rowNumber}: Номер ${row["Номер"]} не найден среди поставщиков`);
         }
-  
-        numberFields.forEach(field => {
-          if (row[field] !== undefined && isNaN(Number(row[field]))) {
-            errors.push(`Строка ${rowNumber}: поле "${field}" должно быть числом`);
+
+        numberFields.forEach(headerName => {
+          const field = fieldToHeaderMap[headerName];
+          if (row[headerName] !== undefined && isNaN(Number(row[headerName]))) {
+            errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть числом`);
           }
         });
-  
-        dateFields.forEach(field => {
-          if (row[field] && isNaN(new Date(row[field]).getTime())) {
-            errors.push(`Строка ${rowNumber}: поле "${field}" должно быть валидной датой`);
+
+        dateFields.forEach(headerName => {
+          const field = fieldToHeaderMap[headerName];
+          if (row[headerName] && isNaN(new Date(row[headerName]).getTime())) {
+            errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть валидной датой`);
           }
         });
       });
-  
+
       if (errors.length > 0) {
         alert("Найдены ошибки в Excel-файле:\n" + errors.join("\n"));
         return;
       }
-  
-      const response = await axios.post("http://localhost:5000/api/deliveries", {
-        deliveries: jsonData,
+
+      const mappedJsonData = jsonData.map(row => {
+        const mappedRow = {};
+        Object.keys(row).forEach(headerName => {
+          const field = fieldToHeaderMap[headerName];
+          mappedRow[field] = row[headerName];
+        });
+        return mappedRow;
       });
-  
+
+      const response = await axios.post("http://localhost:5000/api/deliveries", {
+        deliveries: mappedJsonData,
+      });
+
       alert(`Импортировано поставок: ${response.data.length}`);
       const updatedDeliveries = await getDeliveries();
       const formatted = updatedDeliveries.map(delivery => ({
         ...delivery,
         id: delivery.id,
         supplierName: delivery.Supplier?.name || delivery.supplier?.name || "Неизвестно",
-        quality_of_delivery: delivery.defective_quantity 
+        quality_of_delivery: delivery.defective_quantity
           ? 1 - (delivery.defective_quantity / delivery.quantity)
           : null
       }));
@@ -227,13 +242,13 @@ const Deliveries = () => {
     numberColumn("quantity", "Количество", 0),
     numberColumn("defective_quantity", "Количество брака", 0),
     {
-      field: "quality_of_delivery",
-      headerName: "Качество поставки",
-      width: 150,
-      valueFormatter: (value) => {
-        if (value == null) return '';
-        return `${(value * 100).toFixed(2)} %`;
-      },
+    field: "quality_of_delivery",
+    headerName: "Качество поставки",
+    width: 150,
+    valueFormatter: (value) => {
+    if (value == null) return '';
+    return `${(value * 100).toFixed(2)} %`;
+    },
     },
     { field: "unit", headerName: "Единицы измерения", width: 120 },
     numberColumn("price_per_unit", "Цена за единицу"),
@@ -245,55 +260,64 @@ const Deliveries = () => {
     numberColumn("delivery_time", "Время доставки (дн)", 0),
     { field: "status", headerName: "Статус", width: 150 },
     { field: "supplierName", headerName: "Поставщик", width: 150 },
-  ];
-
-  if (error) {
+    {
+    field: "supplierId",
+    headerName: "Номер",
+    width: 100,
+    }
+    ];
+    if (error) {
     return (
-      <Alert severity="error">
-        Ошибка загрузки данных: {error}
-        <br />
-        Проверьте консоль для подробностей
-      </Alert>
+    <Alert severity="error">
+    Ошибка загрузки данных: {error}
+    <br />
+    Проверьте консоль для подробностей
+    </Alert>
     );
-  }
-
-  return (
+    }
+    return (
     <div style={{ height: 750, width: "100%" }}>
-      <Button
-        onClick={exportToExcel}
-        variant="contained"
-        sx={{width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525"}}
-      >
-        Экспорт
-      </Button>
-      <Button
-        component="label"
-        variant="contained"
-        sx={{ width: "90px", mt: "18px", mb: "10px", ml: 2, backgroundColor: "#252525" }}
-      >
-        Импорт
-      <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
-      </Button>
-      <DataGrid
-        apiRef={apiRef}
-        rows={deliveries}
-        columns={columns}
-        loading={loading}
-        pageSize={10}
-        rowsPerPageOptions={[10]}
-        getRowId={(row) => row.id}
-        slots={{
-          loadingOverlay: LinearProgress,
-          toolbar: CustomToolbar,
-        }}
-        filterModel={filterModel}
-        onFilterModelChange={setFilterModel}
-        sortModel={sortModel}
-        onSortModelChange={setSortModel}
-        sortingOrder={["asc", "desc"]}
-      />
+    <Button
+    onClick={exportToExcel}
+    variant="contained"
+    sx={{ width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525" }}
+    >
+    Экспорт
+    </Button>
+    <Button
+    component="label"
+    variant="contained"
+    sx={{ width: "90px", mt: "18px", mb: "10px", ml: 2, backgroundColor: "#252525" }}
+    >
+    Импорт
+    <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
+    </Button>
+    <DataGrid
+    initialState={{
+      columns: {
+        columnVisibilityModel: {
+          supplierId: false,
+        },
+      },
+    }}
+    apiRef={apiRef}
+    rows={deliveries}
+    columns={columns}
+    loading={loading}
+    pageSize={10}
+    rowsPerPageOptions={[10]}
+    getRowId={(row) => row.id}
+    slots={{
+    loadingOverlay: LinearProgress,
+    toolbar: CustomToolbar,
+    }}
+    filterModel={filterModel}
+    onFilterModelChange={setFilterModel}
+    sortModel={sortModel}
+    onSortModelChange={setSortModel}
+    sortingOrder={["asc", "desc"]}
+    />
     </div>
-  );
-};
-
-export default Deliveries;
+    );
+    };
+    export default Deliveries;

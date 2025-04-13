@@ -68,23 +68,26 @@ const Suppliers = () => {
 
   const exportToExcel = () => {
     if (!apiRef.current) return;
-    
+
     const filteredSortedRowIds = gridFilteredSortedRowIdsSelector(apiRef);
     const visibleColumns = gridVisibleColumnFieldsSelector(apiRef);
-    
+
     const exportData = filteredSortedRowIds.map(id => {
       const row = apiRef.current.getRow(id);
       const rowData = {};
+
       visibleColumns.forEach(field => {
         const column = columns.find(col => col.field === field);
         if (!column) return;
-        
+
         let value = row[field];
         if (column.valueGetter) {
           value = column.valueGetter(value, row);
         }
-        rowData[field] = value !== undefined ? value : '';
+
+        rowData[column.headerName] = value !== undefined ? value : '';
       });
+
       return rowData;
     });
 
@@ -97,33 +100,45 @@ const Suppliers = () => {
   const handleImportExcel = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      
-      const requiredFields = ["name", "type", "country"];
-      const numberFields = [
-        "defective_rate_year", "defective_rate_total", "on_time_percentage",
-        "replacement_days", "assortment_count", "avg_delivery_time",
-        "received_quantity", "rejected_rate_year"
+
+      const fieldToHeaderMap = {};
+      columns.forEach(col => {
+        fieldToHeaderMap[col.headerName] = col.field;
+      });
+
+      const requiredFields = [
+        "Наименование", "Вид", "Страна", "УНП"
       ];
-      
+
+      const numberFields = [
+        "Срок замены", "Ассортимент"
+      ];
+
       const errors = [];
+
       jsonData.forEach((row, idx) => {
         const rowNumber = idx + 2;
-        
-        requiredFields.forEach(field => {
-          if (!row[field] && row[field] !== 0) {
-            errors.push(`Строка ${rowNumber}: отсутствует поле "${field}"`);
+
+        requiredFields.forEach(headerName => {
+          const field = fieldToHeaderMap[headerName];
+          if (!row[headerName] && row[headerName] !== 0) {
+            errors.push(`Строка ${rowNumber}: отсутствует поле "${headerName}"`);
+          }
+          if (row.unp && !/^\d{9}$/.test(row.unp)) {
+            errors.push(`Строка ${rowNumber}: УНП должен состоять из 9 цифр`);
           }
         });
-        
-        numberFields.forEach(field => {
-          if (row[field] !== undefined && isNaN(Number(row[field]))) {
-            errors.push(`Строка ${rowNumber}: поле "${field}" должно быть числом`);
+
+        numberFields.forEach(headerName => {
+          const field = fieldToHeaderMap[headerName];
+          if (row[headerName] !== undefined && isNaN(Number(row[headerName]))) {
+            errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть числом`);
           }
         });
       });
@@ -133,10 +148,19 @@ const Suppliers = () => {
         return;
       }
 
-      const response = await axios.post("http://localhost:5000/api/suppliers", {
-        suppliers: jsonData,
+      const mappedJsonData = jsonData.map(row => {
+        const mappedRow = {};
+        Object.keys(row).forEach(headerName => {
+          const field = fieldToHeaderMap[headerName];
+          mappedRow[field] = row[headerName];
+        });
+        return mappedRow;
       });
-      
+
+      const response = await axios.post("http://localhost:5000/api/suppliers", {
+        suppliers: mappedJsonData,
+      });
+
       alert(`Импортировано поставщиков: ${response.data.length}`);
       const updatedSuppliers = await getSuppliers();
       setSuppliers(updatedSuppliers);
@@ -168,6 +192,7 @@ const Suppliers = () => {
     { field: 'name', headerName: 'Наименование', width: 150 },
     { field: 'type', headerName: 'Вид', width: 150 },
     { field: 'country', headerName: 'Страна', width: 100 },
+    { field: 'unp', headerName: 'УНП', width: 100 },
     { field: 'unified_state_register', headerName: 'ЕГР', type: 'boolean', width: 150 },
     { field: 'ministry_taxes_duties', headerName: 'МНС', type: 'boolean', width: 150 },
     percentageColumn('defective_rate_year', 'Качество (год)'),
@@ -197,38 +222,37 @@ const Suppliers = () => {
       <Button
         onClick={exportToExcel}
         variant="contained"
-        sx={{width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525"}}
+        sx={{ width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525" }}
       >
         Экспорт
-      </Button>
-      <Button
-        component="label"
-        variant="contained"
-        sx={{ width: "90px", mt: "18px", mb: "10px", ml: 2, backgroundColor: "#252525" }}
-      >
-        Импорт
-        <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
-      </Button>
-      <DataGrid
-        apiRef={apiRef}
-        rows={suppliers}
-        columns={columns}
-        loading={loading}
-        pageSize={10}
-        rowsPerPageOptions={[10]}
-        getRowId={(row) => row.id}
-        slots={{
-          loadingOverlay: LinearProgress,
-          toolbar: CustomToolbar,
-        }}
-        filterModel={filterModel}
-        onFilterModelChange={setFilterModel}
-        sortModel={sortModel}
-        onSortModelChange={setSortModel}
-        sortingOrder={["asc", "desc"]}
-      />
-    </div>
-  );
+        </Button>
+  <Button
+    component="label"
+    variant="contained"
+    sx={{ width: "90px", mt: "18px", mb: "10px", ml: 2, backgroundColor: "#252525" }}
+  >
+    Импорт
+    <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
+  </Button>
+  <DataGrid
+    apiRef={apiRef}
+    rows={suppliers}
+    columns={columns}
+    loading={loading}
+    pageSize={10}
+    rowsPerPageOptions={[10]}
+    getRowId={(row) => row.id}
+    slots={{
+      loadingOverlay: LinearProgress,
+      toolbar: CustomToolbar,
+    }}
+    filterModel={filterModel}
+    onFilterModelChange={setFilterModel}
+    sortModel={sortModel}
+    onSortModelChange={setSortModel}
+    sortingOrder={["asc", "desc"]}
+  />
+</div>
+);
 };
-
 export default Suppliers;

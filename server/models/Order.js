@@ -21,11 +21,11 @@ const Order = db.define("Order", {
   rental_costs: { type: DataTypes.FLOAT, defaultValue: 0 }, // Расходы на аренду
   maintenance_premises: { type: DataTypes.FLOAT, defaultValue: 0 }, // Расходы на содержание помещений
   amortization: { type: DataTypes.FLOAT, defaultValue: 0 }, // Амортизация ОС и НМА
-  energy_costs: { type: DataTypes.FLOAT, defaultValue: 0 }, // Расходы на топливо и др.
+  energy_costs: { type: DataTypes.FLOAT, defaultValue: 0 }, // Расходы на энергоресурсы
   taxes: { type: DataTypes.FLOAT, defaultValue: 0 }, // Налоги
   staff_labor_costs: { type: DataTypes.FLOAT, defaultValue: 0 }, // Расходы на обеспечение труда персонала
   other_costs: { type: DataTypes.FLOAT, defaultValue: 0 }, // Прочие расходы
-  general_costs: { type: DataTypes.FLOAT, defaultValue: 0 }, // Все расходы
+  general_costs: { type: DataTypes.FLOAT, defaultValue: 0 }, // Все расходы (Расходы на реализацию)
 
   currency: { type: DataTypes.TEXT, allowNull: false, defaultValue: "BYN" }, // Валюта
   marginality: { type: DataTypes.FLOAT }, // Маржинальность

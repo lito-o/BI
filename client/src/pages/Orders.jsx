@@ -16,9 +16,7 @@ const CustomToolbar = () => (
   <GridToolbarContainer>
     <GridToolbarQuickFilter
       quickFilterParser={(searchInput) =>
-        searchInput
-          .split(" ")
-          .filter((word) => word.length > 0)
+        searchInput.split(" ").filter((word) => word.length > 0)
       }
       debounceMs={300}
     />
@@ -41,23 +39,21 @@ const Orders = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [clients, setClients] = useState([]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-
         const response = await getOrders();
-
         if (!response) throw new Error("Пустой ответ от сервера");
         if (!Array.isArray(response)) throw new Error("Ожидался массив заказов");
-
         const formattedOrders = response.map(order => ({
           ...order,
           id: order.id,
           clientName: order.Client?.name || order.client?.name || "Неизвестно"
         }));
-
         setOrders(formattedOrders);
       } catch (error) {
         console.error("Ошибка при загрузке данных:", error);
@@ -66,7 +62,6 @@ const Orders = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -78,119 +73,123 @@ const Orders = () => {
     localStorage.setItem("ordersSortModel", JSON.stringify(sortModel));
   }, [sortModel]);
 
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/clients");
+        setClients(response.data);
+      } catch (error) {
+        console.error("Ошибка загрузки клиентов:", error);
+      }
+    };
+    fetchClients();
+  }, []);
+
   const exportToExcel = () => {
     if (!apiRef.current) return;
-
-    // Получаем ID отфильтрованных и отсортированных строк
     const filteredSortedRowIds = gridFilteredSortedRowIdsSelector(apiRef);
-    
-    // Получаем список видимых колонок
     const visibleColumns = gridVisibleColumnFieldsSelector(apiRef);
 
-    // Создаем массив данных для экспорта
-    const exportData = filteredSortedRowIds.map(id => {
+    const exportData = filteredSortedRowIds.map((id) => {
       const row = apiRef.current.getRow(id);
       const rowData = {};
-      
-      visibleColumns.forEach(field => {
-        const column = columns.find(col => col.field === field);
+      visibleColumns.forEach((field) => {
+        const column = columns.find((col) => col.field === field);
         if (!column) return;
-
-        // Получаем значение с учетом valueGetter
         let value = row[field];
         if (column.valueGetter) {
           value = column.valueGetter(value, row);
         }
-
-        // Форматируем значение с учетом valueFormatter
-        // if (column.valueFormatter) {
-        //   value = column.valueFormatter({
-        //     value,
-        //     field,
-        //     row
-        //   });
-        // }
-
-        rowData[field] = value !== undefined ? value : '';
+        // Используем headerName как ключ для экспорта
+        rowData[column.headerName] = value !== undefined ? value : "";
       });
-
       return rowData;
     });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Orders");
-    XLSX.writeFile(wb, "orders.xlsx");
+    XLSX.writeFile(wb, "Заказы.xlsx");
   };
 
   const handleImportExcel = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-  
+
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
-      const requiredFields = [
-        "clientId", "request_date", "total_amount", "paid_amount"
-      ];
-  
+
+      // Создаем маппинг из headerName в field
+      const headerToFieldMap = {};
+      columns.forEach((col) => {
+        headerToFieldMap[col.headerName] = col.field;
+      });
+
+      // Преобразуем ключи в данных
+      const transformedData = jsonData.map((row) => {
+        const newRow = {};
+        Object.keys(row).forEach((header) => {
+          const field = headerToFieldMap[header];
+          if (field) {
+            newRow[field] = row[header];
+          } else {
+            console.warn(`Неизвестный заголовок: ${header}`);
+          }
+        });
+        return newRow;
+      });
+
+      const requiredFields = ["clientId", "request_date", "total_amount", "paid_amount"];
       const numberFields = [
         "total_amount", "paid_amount", "transportation_costs", "labor_costs",
         "social_contributions", "rental_costs", "maintenance_premises",
         "amortization", "energy_costs", "taxes", "staff_labor_costs", "other_costs", "cost"
       ];
-  
       const dateFields = [
         "request_date", "confirm_date", "order_ready_date",
         "payment_date", "payment_term", "delivery_date", "delivery_time"
       ];
-  
       const clientIds = clients.map(c => c.id);
-  
+
       const errors = [];
-  
-      jsonData.forEach((row, idx) => {
-        const rowNumber = idx + 2; // с учётом заголовка
-  
-        // Проверка обязательных полей
+
+      transformedData.forEach((row, idx) => {
+        const rowNumber = idx + 2;
         requiredFields.forEach(field => {
           if (!row[field] && row[field] !== 0) {
             errors.push(`Строка ${rowNumber}: отсутствует поле "${field}"`);
           }
         });
-  
-        // Проверка clientId
-        if (!clientIds.includes(row.clientId)) {
+
+        if (row.clientId && !clientIds.includes(row.clientId)) {
           errors.push(`Строка ${rowNumber}: clientId ${row.clientId} не найден среди клиентов`);
         }
-  
-        // Проверка числовых полей
+
         numberFields.forEach(field => {
           if (row[field] !== undefined && isNaN(Number(row[field]))) {
             errors.push(`Строка ${rowNumber}: поле "${field}" должно быть числом`);
           }
         });
-  
-        // Проверка формата дат
+
         dateFields.forEach(field => {
           if (row[field] && isNaN(new Date(row[field]).getTime())) {
             errors.push(`Строка ${rowNumber}: поле "${field}" должно быть валидной датой`);
           }
         });
       });
-  
+
       if (errors.length > 0) {
         alert("Найдены ошибки в Excel-файле:\n" + errors.join("\n"));
         return;
       }
-  
+
       const response = await axios.post("http://localhost:5000/api/orders", {
-        orders: jsonData,
+        orders: transformedData,
       });
-  
+
       alert(`Импортировано заказов: ${response.data.length}`);
       const updatedOrders = await getOrders();
       const formatted = updatedOrders.map(order => ({
@@ -204,71 +203,60 @@ const Orders = () => {
       alert("Ошибка при импорте заказов. См. консоль.");
     }
   };
-  
-  const [clients, setClients] = useState([]);
-
-useEffect(() => {
-  const fetchClients = async () => {
-    try {
-      const response = await axios.get("http://localhost:5000/api/clients");
-      setClients(response.data);
-    } catch (error) {
-      console.error("Ошибка загрузки клиентов:", error);
-    }
-  };
-  fetchClients();
-}, []);
 
   const dateColumn = (field, headerName) => ({
     field,
     headerName,
     width: 180,
     type: "date",
-    valueGetter: (value) =>
-      value ? new Date(value) : null,
-    valueFormatter: (value) =>
-      value ? new Date(value).toLocaleString() : "N/A",
+    valueGetter: (value) => (value ? new Date(value) : null),
+    valueFormatter: (value) => (value ? new Date(value).toLocaleString() : "N/A"),
   });
 
   const numberColumn = (field, headerName, digits = 2) => ({
     field,
     headerName,
     width: 150,
-    valueGetter: (value) =>
-      value !== undefined ? Number(value).toFixed(digits) : "N/A",
+    valueGetter: (value) => (value !== undefined ? Number(value).toFixed(digits) : "N/A"),
     type: "number",
   });
 
   const columns = [
+    // Добавляем скрытое поле для clientId
+    {
+      field: "clientId",
+      headerName: "Номер",
+      width: 0,
+    },
     dateColumn("request_date", "Дата обращения"),
     dateColumn("confirm_date", "Дата подтверждения"),
-    {
-      field: "confirm_status",
-      headerName: "Статус подтверждения",
-      width: 150,
-    },
+    { field: "confirm_status", headerName: "Статус подтверждения", width: 150 },
     numberColumn("application_processing_time", "Время обработки заявки (дн)"),
     dateColumn("order_ready_date", "Дата готовности заказа"),
-    {
-      field: "description",
-      headerName: "Описание",
-      width: 150,
-    },
+    { field: "description", headerName: "Описание", width: 150 },
     numberColumn("total_amount", "Сумма заказа"),
     numberColumn("general_costs", "Расходы на реализацию"),
     numberColumn("cost_price", "Себестоимость"),
-    {
-      field: "currency",
-      headerName: "Валюта",
-      width: 80,
-    },
+    numberColumn("cost", "Стоимость"),
+
+    numberColumn("transportation_costs", "Транспортные расходы"),
+    numberColumn("labor_costs", "Расходы на оплату труда"),
+    numberColumn("social_contributions", "Расходы на социальные нужды"),
+    numberColumn("rental_costs", "Расходы на аренду"),
+    numberColumn("maintenance_premises", "Расходы на содержание помещений"),
+    numberColumn("amortization", "Амортизация ОС и НМА"),
+    numberColumn("energy_costs", "Расходы на энергоресурсы"),
+    numberColumn("taxes", "Налоги"),
+    numberColumn("staff_labor_costs", "Расходы на обеспечение труда персонала"),
+    numberColumn("other_costs", "Прочие расходы"),
+
+    { field: "currency", headerName: "Валюта", width: 80 },
     {
       field: "marginality",
       headerName: "Маржинальность",
       width: 120,
       type: "number",
-      valueFormatter: (value) =>
-        value != null ? `${(value * 100).toFixed(2)} %` : '',
+      valueFormatter: (value) => (value != null ? `${(value * 100).toFixed(2)} %` : ''),
     },
     numberColumn("profit", "Прибыль"),
     {
@@ -276,39 +264,20 @@ useEffect(() => {
       headerName: "Рентабельность",
       width: 120,
       type: "number",
-      valueFormatter: (value) =>
-        value != null ? `${(value * 100).toFixed(2)} %` : '',
+      valueFormatter: (value) => (value != null ? `${(value * 100).toFixed(2)} %` : ''),
     },
     numberColumn("paid_amount", "Оплачено"),
     numberColumn("left_to_pay", "Осталось оплатить"),
     dateColumn("payment_date", "Дата оплаты"),
     dateColumn("payment_term", "Срок оплаты"),
     numberColumn("order_payment_time", "Время оплаты заказа (дн)", 0),
-    {
-      field: "payment_term_status",
-      headerName: "Соответствие срокам оплаты",
-      width: 180,
-      type: "boolean",
-    },
+    { field: "payment_term_status", headerName: "Соответствие срокам оплаты", width: 180, type: "boolean" },
     dateColumn("delivery_time", "Срок доставки"),
     dateColumn("delivery_date", "Дата доставки"),
-    {
-      field: "delivery_status",
-      headerName: "Соответствие срокам доставки",
-      width: 180,
-      type: "boolean",
-    },
+    { field: "delivery_status", headerName: "Соответствие срокам доставки", width: 180, type: "boolean" },
     numberColumn("order_completion_time", "Время выполнения заказа (дн)"),
-    {
-      field: "status",
-      headerName: "Статус заказа",
-      width: 120,
-    },
-    {
-      field: "clientName",
-      headerName: "Клиент",
-      width: 150,
-    }
+    { field: "status", headerName: "Статус заказа", width: 120 },
+    { field: "clientName", headerName: "Клиент", width: 150 },
   ];
 
   if (error) {
@@ -326,7 +295,7 @@ useEffect(() => {
       <Button
         onClick={exportToExcel}
         variant="contained"
-        sx={{width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525"}}
+        sx={{ width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525" }}
       >
         Экспорт
       </Button>
@@ -336,26 +305,44 @@ useEffect(() => {
         sx={{ width: "90px", mt: "18px", mb: "10px", ml: 2, backgroundColor: "#252525" }}
       >
         Импорт
-      <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
+        <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
       </Button>
+
       <DataGrid
-  apiRef={apiRef}
-  rows={orders}
-  columns={columns}
-  loading={loading}
-  pageSize={10}
-  rowsPerPageOptions={[10]}
-  getRowId={(row) => row.id}
-  slots={{
-    loadingOverlay: LinearProgress,
-    toolbar: CustomToolbar,
-  }}
-  filterModel={filterModel}
-  onFilterModelChange={setFilterModel}
-  sortModel={sortModel}
-  onSortModelChange={setSortModel}
-  sortingOrder={["asc", "desc"]}
-/>
+        initialState={{
+          columns: {
+            columnVisibilityModel: {
+              clientId: false,
+              transportation_costs: false,
+              labor_costs: false,
+              social_contributions: false,
+              rental_costs: false,
+              maintenance_premises: false,
+              amortization: false,
+              energy_costs: false,
+              taxes: false,
+              staff_labor_costs: false,
+              other_costs: false,
+            },
+          },
+        }}
+        apiRef={apiRef}
+        rows={orders}
+        columns={columns}
+        loading={loading}
+        pageSize={10}
+        rowsPerPageOptions={[10]}
+        getRowId={(row) => row.id}
+        slots={{
+          loadingOverlay: LinearProgress,
+          toolbar: CustomToolbar,
+        }}
+        filterModel={filterModel}
+        onFilterModelChange={setFilterModel}
+        sortModel={sortModel}
+        onSortModelChange={setSortModel}
+        sortingOrder={["asc", "desc"]}
+      />
     </div>
   );
 };

@@ -65,8 +65,8 @@ router.get("/", async (req, res) => {
     );
 
     const completedOrdersChange = calculateChange(
-      completedOrdersHistory[completedOrdersHistory.length - 1]?.value || 0,
-      completedOrdersHistory[completedOrdersHistory.length - 2]?.value || 0
+      (completedOrdersHistory[completedOrdersHistory.length - 1]?.value || 0),
+      (completedOrdersHistory[completedOrdersHistory.length - 2]?.value || 0)
     );
 
     // Средняя стоимость заказа
@@ -92,8 +92,8 @@ router.get("/", async (req, res) => {
     );
 
     const averageOrderCostChange = calculateChange(
-      averageOrderCostHistory[averageOrderCostHistory.length - 1]?.value || 0,
-      averageOrderCostHistory[averageOrderCostHistory.length - 2]?.value || 0
+      (averageOrderCostHistory[averageOrderCostHistory.length - 1]?.value || 0),
+      (averageOrderCostHistory[averageOrderCostHistory.length - 2]?.value || 0)
     );
 
     // Среднее время выполнения заказа
@@ -119,8 +119,8 @@ router.get("/", async (req, res) => {
     );
 
     const averageOrderTimeChange = calculateChange(
-      averageOrderTimeHistory[averageOrderTimeHistory.length - 1]?.value || 0,
-      averageOrderTimeHistory[averageOrderTimeHistory.length - 2]?.value || 0
+      (averageOrderTimeHistory[averageOrderTimeHistory.length - 1]?.value || 0),
+      (averageOrderTimeHistory[averageOrderTimeHistory.length - 2]?.value || 0)
     );
 
     // Количество клиентов
@@ -136,8 +136,8 @@ router.get("/", async (req, res) => {
       ["month"]
     );
     const totalClientsChange = calculateChange(
-      totalClientsHistory[totalClientsHistory.length - 1]?.value || 0,
-      totalClientsHistory[totalClientsHistory.length - 2]?.value || 0
+      (totalClientsHistory[totalClientsHistory.length - 1]?.value || 0),
+      (totalClientsHistory[totalClientsHistory.length - 2]?.value || 0)
     );
 
     // Количество новых клиентов
@@ -155,8 +155,8 @@ router.get("/", async (req, res) => {
     );
 
     const newClientsChange = calculateChange(
-      newClientsHistory[newClientsHistory.length - 1]?.value || 0,
-      newClientsHistory[newClientsHistory.length - 2]?.value || 0
+      (newClientsHistory[newClientsHistory.length - 1]?.value || 0),
+      (newClientsHistory[newClientsHistory.length - 2]?.value || 0)
     );
 
     // Общая дебиторская задолженность
@@ -172,8 +172,8 @@ router.get("/", async (req, res) => {
       ["month"]
     );
     const totalDebtChange = calculateChange(
-      totalDebtHistory[totalDebtHistory.length - 1]?.value || 0,
-      totalDebtHistory[totalDebtHistory.length - 2]?.value || 0
+      (totalDebtHistory[totalDebtHistory.length - 1]?.value || 0),
+      (totalDebtHistory[totalDebtHistory.length - 2]?.value || 0)
     );
 
     // Среднее время оплаты заказов
@@ -199,8 +199,8 @@ router.get("/", async (req, res) => {
     );
 
     const averagePaymentTimeChange = calculateChange(
-      averagePaymentTimeHistory[averagePaymentTimeHistory.length - 1]?.value || 0,
-      averagePaymentTimeHistory[averagePaymentTimeHistory.length - 2]?.value || 0
+      (averagePaymentTimeHistory[averagePaymentTimeHistory.length - 1]?.value || 0),
+      (averagePaymentTimeHistory[averagePaymentTimeHistory.length - 2]?.value || 0)
     );
 
     // Объем продаж
@@ -216,8 +216,8 @@ router.get("/", async (req, res) => {
       ["month"]
     );
     const salesVolumeChange = calculateChange(
-      salesVolumeHistory[salesVolumeHistory.length - 1]?.value || 0,
-      salesVolumeHistory[salesVolumeHistory.length - 2]?.value || 0
+      (salesVolumeHistory[salesVolumeHistory.length - 1]?.value || 0),
+      (salesVolumeHistory[salesVolumeHistory.length - 2]?.value || 0)
     );
 
     // Расходы на реализацию
@@ -233,8 +233,8 @@ router.get("/", async (req, res) => {
       ["month"]
     );
     const implementationCostsChange = calculateChange(
-      implementationCostsHistory[implementationCostsHistory.length - 1]?.value || 0,
-      implementationCostsHistory[implementationCostsHistory.length - 2]?.value || 0
+      (implementationCostsHistory[implementationCostsHistory.length - 1]?.value || 0),
+      (implementationCostsHistory[implementationCostsHistory.length - 2]?.value || 0)
     );
 
     // Рентабельность реализованной продукции
@@ -261,8 +261,8 @@ router.get("/", async (req, res) => {
       }))
     );
     const productProfitabilityChange = calculateChange(
-      productProfitabilityHistory[productProfitabilityHistory.length - 1]?.value || 0,
-      productProfitabilityHistory[productProfitabilityHistory.length - 2]?.value || 0
+      (productProfitabilityHistory[productProfitabilityHistory.length - 1]?.value || 0),
+      (productProfitabilityHistory[productProfitabilityHistory.length - 2]?.value || 0)
     );
 
     // Рентабельность продаж
@@ -279,8 +279,8 @@ router.get("/", async (req, res) => {
       }))
     );
     const salesProfitabilityChange = calculateChange(
-      salesProfitabilityHistory[salesProfitabilityHistory.length - 1]?.value || 0,
-      salesProfitabilityHistory[salesProfitabilityHistory.length - 2]?.value || 0,
+      (salesProfitabilityHistory[salesProfitabilityHistory.length - 1]?.value || 0),
+      (salesProfitabilityHistory[salesProfitabilityHistory.length - 2]?.value || 0),
     );
 
     const data = {
@@ -300,17 +300,17 @@ router.get("/", async (req, res) => {
         history: averageOrderTimeHistory,
       },
       totalClients: {
-        value: totalClients,
+        value: totalClients || 0,
         change: totalClientsChange,
         history: totalClientsHistory,
       },
       newClients: {
-        value: newClients,
+        value: newClients || 0,
         change: newClientsChange,
         history: newClientsHistory,
       },
       totalDebt: {
-        value: totalDebt,
+        value: totalDebt || 0,
         change: totalDebtChange,
         history: totalDebtHistory,
       },
@@ -320,22 +320,22 @@ router.get("/", async (req, res) => {
         history: averagePaymentTimeHistory,
       },
       salesVolume: {
-        value: salesVolume,
+        value: salesVolume || 0,
         change: salesVolumeChange,
         history: salesVolumeHistory,
       },
       implementationCosts: {
-        value: implementationCosts,
+        value: implementationCosts || 0,
         change: implementationCostsChange,
         history: implementationCostsHistory,
       },
       productProfitability: {
-        value: productProfitability,
+        value: productProfitability || 0,
         change: productProfitabilityChange,
         history: productProfitabilityHistory,
       },
       salesProfitability: {
-        value: salesProfitability,
+        value: salesProfitability || 0,
         change: salesProfitabilityChange,
         history: salesProfitabilityHistory,
       },

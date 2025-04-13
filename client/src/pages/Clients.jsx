@@ -16,9 +16,7 @@ const CustomToolbar = () => (
   <GridToolbarContainer>
     <GridToolbarQuickFilter
       quickFilterParser={(searchInput) =>
-        searchInput
-          .split(" ")
-          .filter((word) => word.length > 0)
+        searchInput.split(" ").filter((word) => word.length > 0)
       }
       debounceMs={300}
     />
@@ -30,12 +28,12 @@ const Clients = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const [filterModel, setFilterModel] = useState(() => {
     const saved = localStorage.getItem("clientsFilterModel");
     return saved ? JSON.parse(saved) : { items: [], logicOperator: "and" };
   });
-  
+
   const [sortModel, setSortModel] = useState(() => {
     const saved = localStorage.getItem("clientsSortModel");
     return saved ? JSON.parse(saved) : [];
@@ -70,22 +68,21 @@ const Clients = () => {
 
   const exportToExcel = () => {
     if (!apiRef.current) return;
-    
     const filteredSortedRowIds = gridFilteredSortedRowIdsSelector(apiRef);
     const visibleColumns = gridVisibleColumnFieldsSelector(apiRef);
-    
-    const exportData = filteredSortedRowIds.map(id => {
+
+    const exportData = filteredSortedRowIds.map((id) => {
       const row = apiRef.current.getRow(id);
       const rowData = {};
-      visibleColumns.forEach(field => {
-        const column = columns.find(col => col.field === field);
+      visibleColumns.forEach((field) => {
+        const column = columns.find((col) => col.field === field);
         if (!column) return;
-        
         let value = row[field];
         if (column.valueGetter) {
           value = column.valueGetter(value, row);
         }
-        rowData[field] = value !== undefined ? value : '';
+        // Используем headerName как ключ для экспорта
+        rowData[column.headerName] = value !== undefined ? value : "";
       });
       return rowData;
     });
@@ -93,45 +90,63 @@ const Clients = () => {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Clients");
-    XLSX.writeFile(wb, "clients.xlsx");
+    XLSX.writeFile(wb, "Клиенты.xlsx");
   };
 
   const handleImportExcel = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      
+
+      // Создаем маппинг из headerName в field
+      const headerToFieldMap = {};
+      columns.forEach((col) => {
+        headerToFieldMap[col.headerName] = col.field;
+      });
+
+      // Преобразуем ключи в данных
+      const transformedData = jsonData.map((row) => {
+        const newRow = {};
+        Object.keys(row).forEach((header) => {
+          const field = headerToFieldMap[header];
+          if (field) {
+            newRow[field] = row[header];
+          } else {
+            console.warn(`Неизвестный заголовок: ${header}`);
+          }
+        });
+        return newRow;
+      });
+
       const requiredFields = ["name", "type", "unp"];
       const errors = [];
-      
-      jsonData.forEach((row, idx) => {
+
+      transformedData.forEach((row, idx) => {
         const rowNumber = idx + 2;
-        
-        requiredFields.forEach(field => {
+        requiredFields.forEach((field) => {
           if (!row[field]) {
             errors.push(`Строка ${rowNumber}: отсутствует обязательное поле "${field}"`);
           }
         });
-        
         if (row.unp && !/^\d{9}$/.test(row.unp)) {
           errors.push(`Строка ${rowNumber}: УНП должен состоять из 9 цифр`);
         }
       });
-      
+
       if (errors.length > 0) {
         alert("Найдены ошибки в Excel-файле:\n" + errors.join("\n"));
         return;
       }
-      
+
       const response = await axios.post("http://localhost:5000/api/clients", {
-        clients: jsonData,
+        clients: transformedData,
       });
-      
+
       alert(`Импортировано клиентов: ${response.data.length}`);
       const updatedClients = await getClients();
       setClients(updatedClients);
@@ -144,44 +159,28 @@ const Clients = () => {
   const numberColumn = (field, headerName, digits = 2) => ({
     field,
     headerName,
-    width: 200,
-    valueGetter: (value) => value !== undefined ? Number(value).toFixed(digits) : "N/A",
+    width: 150,
+    valueGetter: (value) => (value !== undefined ? Number(value).toFixed(digits) : "N/A"),
     type: "number",
   });
 
   const columns = [
-    {
-      field: "name",
-      headerName: "Наименование",
-      width: 200,
-    },
-    {
-      field: "type",
-      headerName: "Вид",
-      width: 120,
-    },
-    {
-      field: "unp",
-      headerName: "УНП",
-      width: 120,
-    },
+    { field: "name", headerName: "Наименование", width: 200, },
+    { field: "type", headerName: "Вид", width: 150, },
+    { field: "unp", headerName: "УНП", width: 150, },
     {
       field: "unified_state_register",
       headerName: "ЕГР",
-      width: 120,
-      valueFormatter: (value) => value ? 'Действующий' : 'Исключен',
+      width: 150,
+      valueFormatter: (value) => (value ? "Действующий" : "Исключен"),
     },
     {
       field: "ministry_taxes_duties",
       headerName: "МНС",
-      width: 120,
-      valueFormatter: (value) => value ? 'Действующий' : 'Ликвидирован',
+      width: 150,
+      valueFormatter: (value) => (value ? "Действующий" : "Ликвидирован"),
     },
-    {
-      field: "country",
-      headerName: "Страна",
-      width: 120,
-    },
+    { field: "country", headerName: "Страна", width: 150, },
     numberColumn("avg_check", "Средний чек"),
     numberColumn("debt", "Дебиторская задолженность"),
     numberColumn("avg_payment_time", "Среднее время оплаты", 1),
@@ -202,7 +201,7 @@ const Clients = () => {
       <Button
         onClick={exportToExcel}
         variant="contained"
-        sx={{width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525"}}
+        sx={{ width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525" }}
       >
         Экспорт
       </Button>
@@ -214,7 +213,7 @@ const Clients = () => {
         Импорт
         <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
       </Button>
-      
+
       <DataGrid
         apiRef={apiRef}
         rows={clients}
