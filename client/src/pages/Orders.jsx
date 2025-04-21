@@ -147,7 +147,7 @@ const Orders = () => {
         return newRow;
       });
 
-      const requiredFields = ["clientId", "request_date", "total_amount", "paid_amount"];
+      const requiredFields = ["clientId", "request_date", "total_amount", "paid_amount", "order_number"];
       const numberFields = [
         "total_amount", "paid_amount", "transportation_costs", "labor_costs",
         "social_contributions", "rental_costs", "maintenance_premises",
@@ -240,11 +240,8 @@ const Orders = () => {
   });
 
   const columns = [
-    {
-      field: "clientId",
-      headerName: "Номер",
-      width: 0,
-    },
+    { field: "clientId", headerName: "Номер", width: 0, },
+    { field: "order_number", headerName: "Номер заказа", width: 150 },
     dateColumn("request_date", "Дата обращения"),
     dateColumn("confirm_date", "Дата подтверждения"),
     { field: "confirm_status", headerName: "Статус подтверждения", width: 150 },

@@ -137,7 +137,7 @@ const Deliveries = () => {
       });
 
       const requiredFields = [
-        "Артикул", "Наименование", "Количество", "Цена за единицу", "Номер"
+        "Номер поставки", "Артикул", "Наименование", "Количество", "Цена за единицу", "Номер"
       ];
       const numberFields = [
         "Количество", "Количество брака", "Цена за единицу"
@@ -239,6 +239,7 @@ const Deliveries = () => {
   });
 
   const columns = [
+    { field: "delivery_number", headerName: "Номер поставки", width: 100 },
     { field: "article", headerName: "Артикул", width: 100 },
     { field: "name", headerName: "Наименование", width: 150 },
     { field: "characteristics", headerName: "Характеристика", width: 150 },

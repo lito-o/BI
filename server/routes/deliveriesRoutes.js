@@ -4,27 +4,7 @@ const Delivery = require("../models/Delivery");
 const Supplier = require("../models/Supplier");
 const { body, validationResult } = require("express-validator");
 const calculateSupplierStats = require("../utils/calculateSupplierStats");
-
-// Вычисление полей на сервере и обновление записи в базе данных
-async function calculateAndSaveDelivery(delivery) {
-  const quantity = delivery.quantity;
-  const defectiveQuantity = delivery.defective_quantity;
-  const pricePerUnit = delivery.price_per_unit;
-  const purchaseDate = new Date(delivery.purchase_date);
-  const arrivalDate = new Date(delivery.arrival_date);
-  const deliveryTerm = new Date(delivery.delivery_term);
-
-  delivery.quality_of_delivery = 1 - defectiveQuantity / quantity;
-  delivery.total_price = quantity * pricePerUnit;
-  delivery.delivery_time = Math.ceil((arrivalDate - purchaseDate) / (1000 * 60 * 60 * 24));
-  if (arrivalDate > deliveryTerm) {
-    const diffTime = arrivalDate - deliveryTerm;
-    delivery.status = `Просрочен на ${Math.ceil(diffTime / (1000 * 60 * 60 * 24))} дней`;
-  } else {
-    delivery.status = "Пришел вовремя";
-  }
-  await delivery.save();
-}
+const {calculateAndSaveDelivery} = require("../utils/calculateDelivery");
 
 // Получить все поставки
 router.get("/", async (req, res) => {
@@ -37,10 +17,12 @@ router.get("/", async (req, res) => {
         },
       ],
     });
+    
     // Вычисление и обновление полей для каждой поставки
     for (const delivery of deliveries) {
       await calculateAndSaveDelivery(delivery);
     }
+    
     // Получение обновленных данных из базы данных
     const updatedDeliveries = await Delivery.findAll({
       include: [
@@ -80,33 +62,30 @@ router.post(
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-
+      
       let deliveriesData;
       if (req.body.deliveries && Array.isArray(req.body.deliveries)) {
-        // Обработка массива поставок
         deliveriesData = req.body.deliveries;
       } else {
-        // Обработка одной поставки
         deliveriesData = [req.body];
       }
-
+      
       const createdDeliveries = [];
       for (const deliveryData of deliveriesData) {
         const supplier = await Supplier.findByPk(deliveryData.supplierId);
         if (!supplier) {
           return res.status(404).json({ error: "Поставщик не найден" });
         }
-
+        
         const delivery = await Delivery.create(deliveryData);
         await calculateAndSaveDelivery(delivery);
-        // Пересчет данных поставщика
         await calculateSupplierStats(delivery.supplierId);
         createdDeliveries.push(delivery);
       }
-
+      
       res.status(201).json(createdDeliveries);
     } catch (error) {
-      console.error("Error creating deliveries:", error); // Логирование ошибки
+      console.error("Error creating deliveries:", error);
       res.status(500).json({ error: "Ошибка создания поставок" });
     }
   }

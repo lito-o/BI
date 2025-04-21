@@ -3,6 +3,7 @@ const db = require("../config/db");
 
 const Delivery = db.define("Delivery", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, },
+  delivery_number: { type: DataTypes.INTEGER, allowNull: false, unique: true, comment: "Номер поставки", },
   article: { type: DataTypes.STRING, allowNull: false, comment: "Артикул товара", },
   name: { type: DataTypes.STRING, allowNull: false, comment: "Наименование товара", },
   characteristics: { type: DataTypes.STRING, allowNull: false, comment: "Характеристика товара", },
