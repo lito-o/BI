@@ -6,7 +6,7 @@ import {
   gridFilteredSortedRowIdsSelector,
   gridVisibleColumnFieldsSelector,
 } from "@mui/x-data-grid";
-import { LinearProgress, Alert } from "@mui/material";
+import { LinearProgress, Alert, Snackbar } from "@mui/material";
 import { getOrders } from "../services/api";
 import * as XLSX from "xlsx";
 import CustomToolbar from "../components/CustomToolbar";
@@ -17,6 +17,11 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
 
   const [filterModel, setFilterModel] = useState(() => {
     const saved = localStorage.getItem("ordersFilterModel");
@@ -29,6 +34,10 @@ const Orders = () => {
   });
 
   const [clients, setClients] = useState([]);
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,6 +56,11 @@ const Orders = () => {
       } catch (error) {
         console.error("Ошибка при загрузке данных:", error);
         setError(error.message);
+        setSnackbar({
+          open: true,
+          message: `Ошибка при загрузке данных: ${error.message}`,
+          severity: "error",
+        });
       } finally {
         setLoading(false);
       }
@@ -69,6 +83,11 @@ const Orders = () => {
         setClients(response.data);
       } catch (error) {
         console.error("Ошибка загрузки клиентов:", error);
+        setSnackbar({
+          open: true,
+          message: "Ошибка загрузки клиентов",
+          severity: "error",
+        });
       }
     };
     fetchClients();
@@ -89,7 +108,6 @@ const Orders = () => {
         if (column.valueGetter) {
           value = column.valueGetter(value, row);
         }
-        // Используем headerName как ключ для экспорта
         rowData[column.headerName] = value !== undefined ? value : "";
       });
       return rowData;
@@ -111,13 +129,11 @@ const Orders = () => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      // Создаем маппинг из headerName в field
       const headerToFieldMap = {};
       columns.forEach((col) => {
         headerToFieldMap[col.headerName] = col.field;
       });
 
-      // Преобразуем ключи в данных
       const transformedData = jsonData.map((row) => {
         const newRow = {};
         Object.keys(row).forEach((header) => {
@@ -171,7 +187,11 @@ const Orders = () => {
       });
 
       if (errors.length > 0) {
-        alert("Найдены ошибки в Excel-файле:\n" + errors.join("\n"));
+        setSnackbar({
+          open: true,
+          message: `Найдены ошибки в Excel-файле:\n${errors.join("\n")}`,
+          severity: "error",
+        });
         return;
       }
 
@@ -179,7 +199,12 @@ const Orders = () => {
         orders: transformedData,
       });
 
-      alert(`Импортировано заказов: ${response.data.length}`);
+      setSnackbar({
+        open: true,
+        message: `Импортировано заказов: ${response.data.length}`,
+        severity: "success",
+      });
+      
       const updatedOrders = await getOrders();
       const formatted = updatedOrders.map(order => ({
         ...order,
@@ -189,7 +214,11 @@ const Orders = () => {
       setOrders(formatted);
     } catch (error) {
       console.error("Ошибка импорта:", error);
-      alert("Ошибка при импорте заказов. См. консоль.");
+      setSnackbar({
+        open: true,
+        message: "Ошибка при импорте заказов. См. консоль.",
+        severity: "error",
+      });
     }
   };
 
@@ -211,7 +240,6 @@ const Orders = () => {
   });
 
   const columns = [
-    // Добавляем скрытое поле для clientId
     {
       field: "clientId",
       headerName: "Номер",
@@ -269,16 +297,6 @@ const Orders = () => {
     { field: "clientName", headerName: "Клиент", width: 150 },
   ];
 
-  if (error) {
-    return (
-      <Alert severity="error">
-        Ошибка загрузки данных: {error}
-        <br />
-        Проверьте консоль для подробностей
-      </Alert>
-    );
-  }
-
   return (
     <div style={{ height: 750, width: "100%" }}>
       <Buttons exportToExcel={exportToExcel} handleImportExcel={handleImportExcel} />
@@ -318,6 +336,21 @@ const Orders = () => {
         onSortModelChange={setSortModel}
         sortingOrder={["asc", "desc"]}
       />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { TextField, Button, Container, Typography, Box, Link } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Background from '../static/images/bg-img.jpg';
 import Logo from '../static/images/Logo-reg-img.svg';
 document.body.style.margin = "0";
 
@@ -28,10 +27,10 @@ const LoginPage = () => {
         alignItems: "center",
         height: "100vh",
         margin: 0,
-        backgroundImage: `url(${Background})`
+        backgroundColor: "#FEFCFF"
       }}
     >
-      <Container maxWidth="xs" sx={{ backgroundColor: "white", borderRadius: "15px", py: 10 }}>
+      <Container maxWidth="xs" sx={{ backgroundColor: "white", borderRadius: "15px", py: 10, border: "1px solid #1A1A1A" }}>
         <Box
         sx={{
           width: 66,
@@ -42,7 +41,7 @@ const LoginPage = () => {
         }}
         />
         <Typography variant="h6" align="center" gutterBottom sx={{ color: "#2e1a5a", mb: "2rem", fontFamily: 'Manrope', fontWeight: "800", fontSize: "20px" }}>
-          Войти в приложение
+          Добро пожаловать в Pulse
         </Typography>
         <form onSubmit={handleSubmit(onSubmit)}>
           <TextField

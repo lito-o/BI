@@ -41,7 +41,9 @@ async function calculateAndSaveFields(order) {
       : null;
   }
   order.delivery_status = deliveryDate && deliveryTime ? deliveryDate <= deliveryTime ? true : false : null;
-  order.order_completion_time = deliveryDate ? (deliveryDate - requestDate) / (1000 * 60 * 60 * 24) : null;
+  order.order_completion_time = deliveryDate 
+  ? Math.abs(deliveryDate - requestDate) / (1000 * 60 * 60 * 24) 
+  : null;
   order.status = !confirmDate ? "На рассмотрении" : order.confirm_status === "Подтверждён" ? "Подтвержден" : "Не подтвержден";
 
   await order.save();

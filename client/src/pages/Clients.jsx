@@ -6,7 +6,7 @@ import {
   gridFilteredSortedRowIdsSelector,
   gridVisibleColumnFieldsSelector,
 } from "@mui/x-data-grid";
-import { LinearProgress, Alert } from "@mui/material";
+import { LinearProgress, Alert, Snackbar } from "@mui/material";
 import { getClients } from "../services/api";
 import * as XLSX from "xlsx";
 import CustomToolbar from "../components/CustomToolbar";
@@ -17,6 +17,11 @@ const Clients = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
 
   const [filterModel, setFilterModel] = useState(() => {
     const saved = localStorage.getItem("clientsFilterModel");
@@ -27,6 +32,10 @@ const Clients = () => {
     const saved = localStorage.getItem("clientsSortModel");
     return saved ? JSON.parse(saved) : [];
   });
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,6 +49,11 @@ const Clients = () => {
       } catch (error) {
         console.error("Ошибка при загрузке данных:", error);
         setError(error.message);
+        setSnackbar({
+          open: true,
+          message: `Ошибка при загрузке данных: ${error.message}`,
+          severity: "error",
+        });
       } finally {
         setLoading(false);
       }
@@ -70,7 +84,6 @@ const Clients = () => {
         if (column.valueGetter) {
           value = column.valueGetter(value, row);
         }
-        // Используем headerName как ключ для экспорта
         rowData[column.headerName] = value !== undefined ? value : "";
       });
       return rowData;
@@ -92,13 +105,11 @@ const Clients = () => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      // Создаем маппинг из headerName в field
       const headerToFieldMap = {};
       columns.forEach((col) => {
         headerToFieldMap[col.headerName] = col.field;
       });
 
-      // Преобразуем ключи в данных
       const transformedData = jsonData.map((row) => {
         const newRow = {};
         Object.keys(row).forEach((header) => {
@@ -128,7 +139,11 @@ const Clients = () => {
       });
 
       if (errors.length > 0) {
-        alert("Найдены ошибки в Excel-файле:\n" + errors.join("\n"));
+        setSnackbar({
+          open: true,
+          message: `Найдены ошибки в Excel-файле:\n${errors.join("\n")}`,
+          severity: "error",
+        });
         return;
       }
 
@@ -136,12 +151,21 @@ const Clients = () => {
         clients: transformedData,
       });
 
-      alert(`Импортировано клиентов: ${response.data.length}`);
+      setSnackbar({
+        open: true,
+        message: `Импортировано клиентов: ${response.data.length}`,
+        severity: "success",
+      });
+
       const updatedClients = await getClients();
       setClients(updatedClients);
     } catch (error) {
       console.error("Ошибка импорта:", error);
-      alert("Ошибка при импорте клиентов. См. консоль.");
+      setSnackbar({
+        open: true,
+        message: "Ошибка при импорте клиентов. См. консоль.",
+        severity: "error",
+      });
     }
   };
 
@@ -154,36 +178,16 @@ const Clients = () => {
   });
 
   const columns = [
-    { field: "name", headerName: "Наименование", width: 200, },
-    { field: "type", headerName: "Вид", width: 150, },
-    { field: "unp", headerName: "УНП", width: 150, },
-    {
-      field: "unified_state_register",
-      headerName: "ЕГР",
-      width: 150,
-      valueFormatter: (value) => (value ? "Действующий" : "Исключен"),
-    },
-    {
-      field: "ministry_taxes_duties",
-      headerName: "МНС",
-      width: 150,
-      valueFormatter: (value) => (value ? "Действующий" : "Ликвидирован"),
-    },
-    { field: "country", headerName: "Страна", width: 150, },
+    { field: "name", headerName: "Наименование", width: 200 },
+    { field: "type", headerName: "Вид", width: 150 },
+    { field: "unp", headerName: "УНП", width: 150 },
+    { field: "unified_state_register", headerName: "ЕГР", type: "boolean", width: 150 },
+    { field: "ministry_taxes_duties", headerName: "МНС", type: "boolean", width: 150 },
+    { field: "country", headerName: "Страна", width: 150 },
     numberColumn("avg_check", "Средний чек"),
     numberColumn("debt", "Дебиторская задолженность"),
     numberColumn("avg_payment_time", "Среднее время оплаты", 1),
   ];
-
-  if (error) {
-    return (
-      <Alert severity="error">
-        Ошибка загрузки данных: {error}
-        <br />
-        Проверьте консоль для подробностей
-      </Alert>
-    );
-  }
 
   return (
     <div style={{ height: 750, width: "100%" }}>
@@ -207,6 +211,21 @@ const Clients = () => {
         onSortModelChange={setSortModel}
         sortingOrder={["asc", "desc"]}
       />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

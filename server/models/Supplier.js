@@ -14,12 +14,15 @@ const Supplier = db.define("Supplier", {
   assortment_count: { type: DataTypes.INTEGER, defaultValue: 0 }, // Количество позиций
   delivery_change: { type: DataTypes.BOOLEAN, defaultValue: true }, // Изменение сроков доставки
   
-  defective_rate_year: { type: DataTypes.FLOAT, defaultValue: 0 }, // Брак за год
-  defective_rate_total: { type: DataTypes.FLOAT, defaultValue: 0 }, // Общий уровень брака
+  defective_rate_year: { type: DataTypes.FLOAT, defaultValue: 0 }, // Процент отклоненного товара за год
+  defective_rate_total: { type: DataTypes.FLOAT, defaultValue: 0 }, // Общий процент отклоненного товара
+  quality_year: { type: DataTypes.FLOAT, defaultValue: 0 }, // Качество за год
+  quality_total: { type: DataTypes.FLOAT, defaultValue: 0 }, // Качество за все время
+  
   on_time_percentage: { type: DataTypes.FLOAT, defaultValue: 0 }, // Процент своевременных поставок
   avg_delivery_time: { type: DataTypes.FLOAT, defaultValue: 0 }, // Средний срок поставки
   received_quantity: { type: DataTypes.INTEGER, defaultValue: 0 }, // Полученное за год количество
-  rejected_rate_year: { type: DataTypes.FLOAT, defaultValue: 0 }, // Процент отклоненного товара за год
+
   category: { type: DataTypes.STRING, defaultValue: "Неизвестно" }, // Категория надежности
 });
 

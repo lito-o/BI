@@ -34,7 +34,12 @@ const DashboardCard = ({ title, value, change, period, data }) => {
       borderRadius: 2,
       boxShadow: "0px 2px 10px rgba(0, 0, 0, 0.1)"
     }}>
-      <CardContent sx={{ p: 0 }}>
+      <CardContent sx={{ 
+        p: 0, 
+        '&:last-child': { 
+          paddingBottom: 0 
+        } 
+      }}>
         <Typography 
           variant="subtitle1" 
           color="text.secondary" 
@@ -64,7 +69,7 @@ const DashboardCard = ({ title, value, change, period, data }) => {
           />
         </Stack>
         
-        <Box sx={{ width: '100%', height: 80, mt: 2, mb: 1 }}>
+        <Box sx={{ width: '100%', height: "100px", mt: 2, mb: 1 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <Line 

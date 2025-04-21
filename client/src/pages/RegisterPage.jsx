@@ -4,7 +4,6 @@ import { TextField, Button, Container, Typography, Box, Link, InputAdornment, Ic
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Background from '../static/images/bg-img.jpg';
 import Logo from '../static/images/Logo-reg-img.svg';
 
 document.body.style.margin = "0";
@@ -35,10 +34,10 @@ const RegisterPage = () => {
         alignItems: "center",
         height: "100vh",
         margin: 0,
-        backgroundImage: `url(${Background})`
+        backgroundColor: "#FEFCFF"
       }}
     >
-      <Container maxWidth="sm" sx={{ backgroundColor: "white", borderRadius: "15px", py: 10, px: 4 }}>
+      <Container maxWidth="xs" sx={{ backgroundColor: "white", borderRadius: "15px", py: 10, px: 4, border: "1px solid #1A1A1A" }}>
         <Box
           sx={{
             width: 66,
@@ -49,7 +48,7 @@ const RegisterPage = () => {
           }}
         />
         <Typography variant="h6" align="center" gutterBottom sx={{ color: "#2e1a5a", mb: "2rem", fontFamily: 'Manrope', fontWeight: "800", fontSize: "20px" }}>
-          Зарегистрироваться в приложении
+            Добро пожаловать в Pulse
         </Typography>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Box sx={{ display: 'flex', gap: 2, mb: 1 }}>
@@ -111,7 +110,7 @@ const RegisterPage = () => {
           </Button>
         </form>
         <Typography sx={{ textAlign: "center", marginTop: 2, fontSize: 15 }}>
-          Есть аккаунт?{" "}
+          Уже есть аккаунт?{" "}
           <Link
             href="/login"
             variant="body2"

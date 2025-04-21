@@ -6,15 +6,15 @@ const Buttons = ({ exportToExcel, handleImportExcel }) => (
     <Button
       component="label"
       onClick={exportToExcel}
-      variant="contained"
-      sx={{ width: "90px", mt: "18px", mb: "10px", backgroundColor: "#252525" }}
+      variant="outlined"
+      sx={{ width: "120px", mt: "18px", mb: "10px", borderColor: "#565656", borderWidth: 2, color: "#252525", borderRadius: "5px", fontFamily: 'Manrope', fontWeight: '600', fontSize: '14px' }}
     >
       Экспорт
     </Button>
     <Button
       component="label"
       variant="contained"
-      sx={{ width: "90px", mt: "18px", mb: "10px", ml: 2, backgroundColor: "#252525" }}
+      sx={{ width: "120px", mt: "18px", mb: "10px", ml: "10px", backgroundColor: "#252525", fontFamily: 'Manrope', fontWeight: '600', fontSize: '14px' }}
     >
       Импорт
       <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />

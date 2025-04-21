@@ -2,19 +2,16 @@ const Supplier = require("../models/Supplier");
 const Delivery = require("../models/Delivery");
 const { Op } = require("sequelize");
 
-/**
- * Пересчет показателей поставщика
- * @param {number} supplierId - ID поставщика
- */
 const calculateSupplierStats = async (supplierId) => {
+  // Получаем данные поставщика
+  const supplier = await Supplier.findByPk(supplierId);
+  if (!supplier) throw new Error("Поставщик не найден");
+
   const deliveries = await Delivery.findAll({ where: { supplierId } });
-
-//   const now = new Date();
-//   const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
-
+  
+  // Расчет временного периода
   const now = new Date();
-  const oneYearAgo = now.getFullYear();
-  console.log(oneYearAgo);
+  const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
 
 
   // Данные за год
@@ -30,12 +27,13 @@ const calculateSupplierStats = async (supplierId) => {
   const avgDeliveryTime = totalDeliveries ? deliveries.reduce((sum, d) => sum + d.delivery_time, 0) / totalDeliveries : 0;
 
   // Рассчитываем новые значения
-  const defectiveRateYear = yearQuantity ? (yearQuantity - yearDefective) / yearQuantity : 0;
-  const defectiveRateTotal = totalQuantity ? (totalQuantity - totalDefective) / totalQuantity : 0;
+  const defectiveRateYear = yearQuantity ? yearDefective / yearQuantity : 0;
+  const defectiveRateTotal = totalQuantity ? totalDefective / totalQuantity : 0;
+  const qualityYear = yearQuantity ? (yearQuantity - yearDefective) / yearQuantity : 0;
+  const qualityTotal = totalQuantity ? (totalQuantity - totalDefective) / totalQuantity : 0;
   const onTimePercentage = totalDeliveries ? totalOnTime / totalDeliveries : 0;
-  const rejectedRateYear = defectiveRateYear;
   const receivedQuantity = yearQuantity;
-
+  
   // Определяем среднее качество среди всех поставщиков
   const allSuppliers = await Supplier.findAll();
   const avgQuality = allSuppliers.length
@@ -43,8 +41,25 @@ const calculateSupplierStats = async (supplierId) => {
     : 0;
 
   let category = "Неизвестно";
-  if (defectiveRateTotal < avgQuality) category = "Надежный";
-  else if (defectiveRateTotal === avgQuality) category = "Удовлетворительный";
+  if (
+    defectiveRateTotal < avgQuality && 
+    supplier.unified_state_register === true && 
+    supplier.ministry_taxes_duties === true && 
+    supplier.replacement_days <= 7 && 
+    supplier.assortment_count >= 20 && 
+    supplier.delivery_change === true && 
+    qualityYear >= qualityTotal &&
+    onTimePercentage >= 0.9
+  ) category = "Надежный";
+  else if (
+    supplier.unified_state_register === true && 
+    supplier.ministry_taxes_duties === true && 
+    supplier.replacement_days <= 10 && 
+    supplier.assortment_count >= 10 && 
+    supplier.delivery_change === true && 
+    qualityYear >= qualityTotal &&
+    onTimePercentage >= 0.8
+  ) category = "Удовлетворительный";
   else category = "Неудовлетворительный";
 
   // Обновляем поставщика
@@ -55,7 +70,8 @@ const calculateSupplierStats = async (supplierId) => {
       on_time_percentage: onTimePercentage,
       avg_delivery_time: avgDeliveryTime,
       received_quantity: receivedQuantity,
-      rejected_rate_year: rejectedRateYear,
+      quality_year: qualityYear,
+      quality_total: qualityTotal,
       category: category,
     },
     { where: { id: supplierId } }

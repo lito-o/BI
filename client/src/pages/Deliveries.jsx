@@ -6,7 +6,7 @@ import {
   gridFilteredSortedRowIdsSelector,
   gridVisibleColumnFieldsSelector,
 } from "@mui/x-data-grid";
-import { LinearProgress, Alert } from "@mui/material";
+import { LinearProgress, Alert, Snackbar } from "@mui/material";
 import { getDeliveries } from "../services/api";
 import * as XLSX from "xlsx";
 import CustomToolbar from "../components/CustomToolbar";
@@ -18,25 +18,34 @@ const Deliveries = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [suppliers, setSuppliers] = useState([]);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
+
   const [filterModel, setFilterModel] = useState(() => {
     const saved = localStorage.getItem("deliveriesFilterModel");
     return saved ? JSON.parse(saved) : { items: [], logicOperator: "and" };
   });
+
   const [sortModel, setSortModel] = useState(() => {
     const saved = localStorage.getItem("deliveriesSortModel");
     return saved ? JSON.parse(saved) : [];
   });
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-
         const response = await getDeliveries();
         if (!response) throw new Error("Пустой ответ от сервера");
         if (!Array.isArray(response)) throw new Error("Ожидался массив поставок");
-
         const formattedDeliveries = response.map(delivery => ({
           ...delivery,
           id: delivery.id,
@@ -45,16 +54,19 @@ const Deliveries = () => {
             ? 1 - (delivery.defective_quantity / delivery.quantity)
             : null
         }));
-
         setDeliveries(formattedDeliveries);
       } catch (error) {
         console.error("Ошибка при загрузке данных:", error);
         setError(error.message);
+        setSnackbar({
+          open: true,
+          message: `Ошибка при загрузке данных: ${error.message}`,
+          severity: "error",
+        });
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -65,9 +77,13 @@ const Deliveries = () => {
         setSuppliers(response.data);
       } catch (error) {
         console.error("Ошибка загрузки поставщиков:", error);
+        setSnackbar({
+          open: true,
+          message: "Ошибка загрузки поставщиков",
+          severity: "error",
+        });
       }
     };
-
     fetchSuppliers();
   }, []);
 
@@ -81,26 +97,21 @@ const Deliveries = () => {
 
   const exportToExcel = () => {
     if (!apiRef.current) return;
-
     const filteredSortedRowIds = gridFilteredSortedRowIdsSelector(apiRef);
     const visibleColumns = gridVisibleColumnFieldsSelector(apiRef);
 
     const exportData = filteredSortedRowIds.map(id => {
       const row = apiRef.current.getRow(id);
       const rowData = {};
-
       visibleColumns.forEach(field => {
         const column = columns.find(col => col.field === field);
         if (!column) return;
-
         let value = row[field];
         if (column.valueGetter) {
           value = column.valueGetter(value, row);
         }
-
         rowData[column.headerName] = value !== undefined ? value : '';
       });
-
       return rowData;
     });
 
@@ -128,24 +139,18 @@ const Deliveries = () => {
       const requiredFields = [
         "Артикул", "Наименование", "Количество", "Цена за единицу", "Номер"
       ];
-
       const numberFields = [
         "Количество", "Количество брака", "Цена за единицу"
       ];
-
       const dateFields = [
         "Дата покупки", "Дата поступления", "Срок доставки"
       ];
-
       const supplierIds = suppliers.map(s => s.id);
-
       const errors = [];
 
       jsonData.forEach((row, idx) => {
         const rowNumber = idx + 2;
-
         requiredFields.forEach(headerName => {
-          const field = fieldToHeaderMap[headerName];
           if (!row[headerName] && row[headerName] !== 0) {
             errors.push(`Строка ${rowNumber}: отсутствует поле "${headerName}"`);
           }
@@ -156,14 +161,12 @@ const Deliveries = () => {
         }
 
         numberFields.forEach(headerName => {
-          const field = fieldToHeaderMap[headerName];
           if (row[headerName] !== undefined && isNaN(Number(row[headerName]))) {
             errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть числом`);
           }
         });
 
         dateFields.forEach(headerName => {
-          const field = fieldToHeaderMap[headerName];
           if (row[headerName] && isNaN(new Date(row[headerName]).getTime())) {
             errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть валидной датой`);
           }
@@ -171,7 +174,11 @@ const Deliveries = () => {
       });
 
       if (errors.length > 0) {
-        alert("Найдены ошибки в Excel-файле:\n" + errors.join("\n"));
+        setSnackbar({
+          open: true,
+          message: `Найдены ошибки в Excel-файле:\n${errors.join("\n")}`,
+          severity: "error",
+        });
         return;
       }
 
@@ -188,7 +195,12 @@ const Deliveries = () => {
         deliveries: mappedJsonData,
       });
 
-      alert(`Импортировано поставок: ${response.data.length}`);
+      setSnackbar({
+        open: true,
+        message: `Импортировано поставок: ${response.data.length}`,
+        severity: "success",
+      });
+
       const updatedDeliveries = await getDeliveries();
       const formatted = updatedDeliveries.map(delivery => ({
         ...delivery,
@@ -201,7 +213,11 @@ const Deliveries = () => {
       setDeliveries(formatted);
     } catch (error) {
       console.error("Ошибка импорта:", error);
-      alert("Ошибка при импорте поставок. См. консоль.");
+      setSnackbar({
+        open: true,
+        message: "Ошибка при импорте поставок. См. консоль.",
+        severity: "error",
+      });
     }
   };
 
@@ -229,13 +245,13 @@ const Deliveries = () => {
     numberColumn("quantity", "Количество", 0),
     numberColumn("defective_quantity", "Количество брака", 0),
     {
-    field: "quality_of_delivery",
-    headerName: "Качество поставки",
-    width: 150,
-    valueFormatter: (value) => {
-    if (value == null) return '';
-    return `${(value * 100).toFixed(2)} %`;
-    },
+      field: "quality_of_delivery",
+      headerName: "Качество поставки",
+      width: 150,
+      valueFormatter: (value) => {
+        if (value == null) return '100 %';
+        return `${(value * 100).toFixed(2)} %`;
+      },
     },
     { field: "unit", headerName: "Единицы измерения", width: 120 },
     numberColumn("price_per_unit", "Цена за единицу"),
@@ -247,50 +263,65 @@ const Deliveries = () => {
     numberColumn("delivery_time", "Время доставки (дн)", 0),
     { field: "status", headerName: "Статус", width: 150 },
     { field: "supplierName", headerName: "Поставщик", width: 150 },
-    {
-    field: "supplierId",
-    headerName: "Номер",
-    width: 100,
-    }
-    ];
-    if (error) {
+    { field: "supplierId", headerName: "Номер", width: 100 }
+  ];
+
+  if (error) {
     return (
-    <Alert severity="error">
-    Ошибка загрузки данных: {error}
-    <br />
-    Проверьте консоль для подробностей
-    </Alert>
+      <Alert severity="error">
+        Ошибка загрузки данных: {error}
+        <br />
+        Проверьте консоль для подробностей
+      </Alert>
     );
-    }
-    return (
+  }
+
+  return (
     <div style={{ height: 750, width: "100%" }}>
-    <Buttons exportToExcel={exportToExcel} handleImportExcel={handleImportExcel} />
-    <DataGrid
-    initialState={{
-      columns: {
-        columnVisibilityModel: {
-          supplierId: false,
-        },
-      },
-    }}
-    apiRef={apiRef}
-    rows={deliveries}
-    columns={columns}
-    loading={loading}
-    pageSize={10}
-    rowsPerPageOptions={[10]}
-    getRowId={(row) => row.id}
-    slots={{
-    loadingOverlay: LinearProgress,
-    toolbar: CustomToolbar,
-    }}
-    filterModel={filterModel}
-    onFilterModelChange={setFilterModel}
-    sortModel={sortModel}
-    onSortModelChange={setSortModel}
-    sortingOrder={["asc", "desc"]}
-    />
+      <Buttons exportToExcel={exportToExcel} handleImportExcel={handleImportExcel} />
+
+      <DataGrid
+        initialState={{
+          columns: {
+            columnVisibilityModel: {
+              supplierId: false,
+            },
+          },
+        }}
+        apiRef={apiRef}
+        rows={deliveries}
+        columns={columns}
+        loading={loading}
+        pageSize={10}
+        rowsPerPageOptions={[10]}
+        getRowId={(row) => row.id}
+        slots={{
+          loadingOverlay: LinearProgress,
+          toolbar: CustomToolbar,
+        }}
+        filterModel={filterModel}
+        onFilterModelChange={setFilterModel}
+        sortModel={sortModel}
+        onSortModelChange={setSortModel}
+        sortingOrder={["asc", "desc"]}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
-    );
-    };
-    export default Deliveries;
+  );
+};
+
+export default Deliveries;
