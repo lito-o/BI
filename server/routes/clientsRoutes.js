@@ -35,40 +35,58 @@ router.post("/",
 
       let clientsData;
       if (req.body.clients && Array.isArray(req.body.clients)) {
-        // Обработка массива клиентов
         clientsData = req.body.clients;
       } else {
-        // Обработка одного клиента
         clientsData = [req.body];
       }
 
-      const createdClients = [];
+      const results = {
+        created: [],
+        updated: [],
+        errors: []
+      };
+
       for (const clientData of clientsData) {
-        const { name, type, country, unp, unified_state_register, ministry_taxes_duties } = clientData;
-
-        if (!name || !type || !country) {
-          return res.status(400).json({ error: "Обязательные поля: name, type, country" });
-        }
-
-        const newClient = await Client.create({
-          name,
-          type,
-          country,
-          unp,
-          unified_state_register,
-          ministry_taxes_duties
-        });
-
         try {
-          await updateClientFields(newClient.id);
-        } catch (updateError) {
-          console.error('Ошибка при обновлении полей клиента:', updateError);
-        }
+          const { name, type, country, unp } = clientData;
 
-        createdClients.push(newClient);
+          if (!name || !type || !country) {
+            results.errors.push({ client: clientData, error: "Обязательные поля: name, type, country" });
+            continue;
+          }
+
+          // Проверяем существование клиента по УНП
+          if (unp) {
+            const existingClient = await Client.findOne({ where: { unp } });
+            
+            if (existingClient) {
+              // Обновляем существующего клиента
+              await existingClient.update(clientData);
+              try {
+                await updateClientFields(existingClient.id);
+              } catch (updateError) {
+                console.error('Ошибка при обновлении полей клиента:', updateError);
+              }
+              results.updated.push(existingClient);
+              continue;
+            }
+          }
+
+          // Создаем нового клиента
+          const newClient = await Client.create(clientData);
+          try {
+            await updateClientFields(newClient.id);
+          } catch (updateError) {
+            console.error('Ошибка при обновлении полей клиента:', updateError);
+          }
+          results.created.push(newClient);
+        } catch (error) {
+          console.error('Error processing client:', error);
+          results.errors.push({ client: clientData, error: error.message });
+        }
       }
 
-      res.json(createdClients);
+      res.status(201).json(results);
     } catch (error) {
       console.error('Ошибка при создании клиента:', error);
       res.status(500).json({

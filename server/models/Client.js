@@ -6,7 +6,7 @@ const Client = db.define("Client", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   name: { type: DataTypes.STRING, unique: true, allowNull: false }, // Наименование клиента
   type: { type: DataTypes.ENUM("Юридическое лицо", "Физическое лицо"), allowNull: false }, // Вид клиента
-  unp: { type: DataTypes.STRING, unique: true, allowNull: false }, // УНП (уникальный номер плательщика)
+  unp: { type: DataTypes.INTEGER, unique: true, allowNull: false }, // УНП (уникальный номер плательщика)
   unified_state_register: { type: DataTypes.BOOLEAN, defaultValue: false },
   ministry_taxes_duties: { type: DataTypes.BOOLEAN, defaultValue: false },
   country: { type: DataTypes.STRING, allowNull: false, defaultValue: "Беларусь" }, // Страна регистрации

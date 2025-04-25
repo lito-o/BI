@@ -122,18 +122,18 @@ const Orders = () => {
   const handleImportExcel = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
+  
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
+  
       const headerToFieldMap = {};
       columns.forEach((col) => {
         headerToFieldMap[col.headerName] = col.field;
       });
-
+  
       const transformedData = jsonData.map((row) => {
         const newRow = {};
         Object.keys(row).forEach((header) => {
@@ -146,7 +146,7 @@ const Orders = () => {
         });
         return newRow;
       });
-
+  
       const requiredFields = ["clientId", "request_date", "total_amount", "paid_amount", "order_number"];
       const numberFields = [
         "total_amount", "paid_amount", "transportation_costs", "labor_costs",
@@ -158,9 +158,9 @@ const Orders = () => {
         "payment_date", "payment_term", "delivery_date", "delivery_time"
       ];
       const clientIds = clients.map(c => c.id);
-
+  
       const errors = [];
-
+  
       transformedData.forEach((row, idx) => {
         const rowNumber = idx + 2;
         requiredFields.forEach(field => {
@@ -168,24 +168,24 @@ const Orders = () => {
             errors.push(`Строка ${rowNumber}: отсутствует поле "${field}"`);
           }
         });
-
+  
         if (row.clientId && !clientIds.includes(row.clientId)) {
           errors.push(`Строка ${rowNumber}: clientId ${row.clientId} не найден среди клиентов`);
         }
-
+  
         numberFields.forEach(field => {
           if (row[field] !== undefined && isNaN(Number(row[field]))) {
             errors.push(`Строка ${rowNumber}: поле "${field}" должно быть числом`);
           }
         });
-
+  
         dateFields.forEach(field => {
           if (row[field] && isNaN(new Date(row[field]).getTime())) {
             errors.push(`Строка ${rowNumber}: поле "${field}" должно быть валидной датой`);
           }
         });
       });
-
+  
       if (errors.length > 0) {
         setSnackbar({
           open: true,
@@ -194,14 +194,25 @@ const Orders = () => {
         });
         return;
       }
-
+  
       const response = await axios.post("http://localhost:5000/api/orders", {
         orders: transformedData,
       });
-
+  
+      let message = `Импорт завершен: `;
+      if (response.data.created.length > 0) {
+        message += `Создано новых заказов: ${response.data.created.length}. `;
+      }
+      if (response.data.updated.length > 0) {
+        message += `Обновлено существующих заказов: ${response.data.updated.length}. `;
+      }
+      if (response.data.errors.length > 0) {
+        message += `Ошибок при обработке: ${response.data.errors.length}.`;
+      }
+  
       setSnackbar({
         open: true,
-        message: `Импортировано заказов: ${response.data.length}`,
+        message: message,
         severity: "success",
       });
       

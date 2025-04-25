@@ -34,51 +34,62 @@ router.post(
 
       let suppliersData;
       if (req.body.suppliers && Array.isArray(req.body.suppliers)) {
-        // Обработка массива поставщиков
         suppliersData = req.body.suppliers;
       } else {
-        // Обработка одного поставщика
         suppliersData = [req.body];
       }
 
-      const createdSuppliers = [];
+      const results = {
+        created: [],
+        updated: [],
+        errors: []
+      };
+
       for (const supplierData of suppliersData) {
-        const {
-          name,
-          type,
-          country,
-          unp,
-          unified_state_register,
-          ministry_taxes_duties,
-          replacement_days,
-          assortment_count,
-          delivery_change
-        } = supplierData;
+        try {
+          const {
+            name,
+            type,
+            country,
+            unp,
+            unified_state_register,
+            ministry_taxes_duties,
+            replacement_days,
+            assortment_count,
+            delivery_change
+          } = supplierData;
 
-        if (!name || !type || !country) {
-          return res.status(400).json({ error: "Обязательные поля: name, type, country" });
+          if (!name || !type || !country) {
+            results.errors.push({ supplier: supplierData, error: "Обязательные поля: name, type, country" });
+            continue;
+          }
+
+          // Проверяем существование поставщика по УНП
+          if (unp) {
+            const existingSupplier = await Supplier.findOne({ where: { unp } });
+            
+            if (existingSupplier) {
+              // Обновляем существующего поставщика
+              await existingSupplier.update(supplierData);
+              await calculateSupplierStats(existingSupplier.id);
+              results.updated.push(existingSupplier);
+              continue;
+            }
+          }
+
+          // Создаем нового поставщика
+          const newSupplier = await Supplier.create(supplierData);
+          await calculateSupplierStats(newSupplier.id);
+          results.created.push(newSupplier);
+        } catch (error) {
+          console.error("Error processing supplier:", error);
+          results.errors.push({ supplier: supplierData, error: error.message });
         }
-
-        const newSupplier = await Supplier.create({
-          name,
-          type,
-          country,
-          unp,
-          unified_state_register,
-          ministry_taxes_duties,
-          replacement_days,
-          assortment_count,
-          delivery_change
-        });
-
-        // Пересчитываем показатели сразу после создания
-        await calculateSupplierStats(newSupplier.id);
-        createdSuppliers.push(newSupplier);
       }
 
-      res.status(201).json(createdSuppliers);
+      res.status(201).json(results);
     } catch (error) {
-      console.error("Error creating suppliers:", error); // Логирование ошибки
+      console.error("Error creating suppliers:", error);
       res.status(500).json({ error: "Ошибка создания поставщиков" });
     }
   }

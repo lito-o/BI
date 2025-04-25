@@ -22,26 +22,6 @@ export const createOrder = async (orderData) => {
   }
 };
 
-export const createDelivery = async (deliveryData) => {
-  try {
-    const response = await axios.post(`${API_URL}/deliveries`, deliveryData);
-    return response.data;
-  } catch (error) {
-    console.error("Ошибка создания поставки:", error);
-    throw error;
-  }
-};
-
-export const createSupplier = async (supplierData) => {
-  try {
-    const response = await axios.post(`${API_URL}/suppliers`, supplierData);
-    return response.data;
-  } catch (error) {
-    console.error("Ошибка создания поставщиков:", error);
-    throw error;
-  }
-};
-
 export const updateOrder = async (id, orderData) => {
   try {
     const response = await axios.put(`${API_URL}/orders/${id}`, orderData);
@@ -62,6 +42,83 @@ export const deleteOrder = async (id) => {
   }
 };
 
+export const getClients = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/clients`);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка загрузки клиентов:", error);
+    return [];
+  }
+};
+
+
+export const createClients = async (clientsData) => {
+  try {
+    const response = await axios.post(`${API_URL}/clients`, {
+      clients: clientsData,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка создания клиентов:", error);
+    throw error;
+  }
+};
+
+export const getDeliveries = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/deliveries`);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка загрузки поставок:", error);
+    return [];
+  }
+};
+
+export const createDeliveries = async (deliveriesData) => {
+  try {
+    const response = await axios.post(`${API_URL}/deliveries`, {
+      deliveries: deliveriesData,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка создания поставок:", error);
+    throw error;
+  }
+};
+
+export const createDelivery = async (deliveryData) => {
+  try {
+    const response = await axios.post(`${API_URL}/deliveries`, deliveryData);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка создания поставки:", error);
+    throw error;
+  }
+};
+
+export const createSupplier = async (supplierData) => {
+  try {
+    const response = await axios.post(`${API_URL}/suppliers`, supplierData);
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка создания поставщиков:", error);
+    throw error;
+  }
+};
+
+export const createSuppliers = async (suppliersData) => {
+  try {
+    const response = await axios.post(`${API_URL}/suppliers`, {
+      suppliers: suppliersData,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка создания поставщиков:", error);
+    throw error;
+  }
+};
+
 export const getSuppliers = async () => {
   try {
     const response = await axios.get(`${API_URL}/suppliers`);
@@ -71,26 +128,6 @@ export const getSuppliers = async () => {
     return [];
   }
 };
-
-export const getDeliveries = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/deliveries`);
-      return response.data;
-    } catch (error) {
-      console.error("Ошибка загрузки поставок:", error);
-      return [];
-    }
-  };
-  
-  export const getClients = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/clients`);
-      return response.data;
-    } catch (error) {
-      console.error("Ошибка загрузки клиентов:", error);
-      return [];
-    }
-  };
   
   export const getClientOrders = async (clientId) => {
     try {
@@ -101,14 +138,4 @@ export const getDeliveries = async () => {
       return [];
     }
   };
-
-  // export const getDashboard = async () => {
-  //   try {
-  //     const response = await axios.get(`${API_URL}/dashboard`);
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error("Ошибка загрузки статистики:", error);
-  //     return [];
-  //   }
-  // };
   

@@ -17,12 +17,10 @@ router.get("/", async (req, res) => {
         },
       ],
     });
-    
     // Вычисление и обновление полей для каждой поставки
     for (const delivery of deliveries) {
       await calculateAndSaveDelivery(delivery);
     }
-    
     // Получение обновленных данных из базы данных
     const updatedDeliveries = await Delivery.findAll({
       include: [
@@ -62,28 +60,56 @@ router.post(
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      
+
       let deliveriesData;
       if (req.body.deliveries && Array.isArray(req.body.deliveries)) {
         deliveriesData = req.body.deliveries;
       } else {
         deliveriesData = [req.body];
       }
-      
-      const createdDeliveries = [];
+
+      const results = {
+        created: [],
+        updated: [],
+        errors: []
+      };
+
       for (const deliveryData of deliveriesData) {
-        const supplier = await Supplier.findByPk(deliveryData.supplierId);
-        if (!supplier) {
-          return res.status(404).json({ error: "Поставщик не найден" });
+        try {
+          const supplier = await Supplier.findByPk(deliveryData.supplierId);
+          if (!supplier) {
+            results.errors.push({ delivery: deliveryData, error: "Поставщик не найден" });
+            continue;
+          }
+
+          // Проверяем существование поставки по номеру
+          if (deliveryData.delivery_number) {
+            const existingDelivery = await Delivery.findOne({ 
+              where: { delivery_number: deliveryData.delivery_number } 
+            });
+            
+            if (existingDelivery) {
+              // Обновляем существующую поставку
+              await existingDelivery.update(deliveryData);
+              await calculateAndSaveDelivery(existingDelivery);
+              await calculateSupplierStats(existingDelivery.supplierId);
+              results.updated.push(existingDelivery);
+              continue;
+            }
+          }
+
+          // Создаем новую поставку
+          const delivery = await Delivery.create(deliveryData);
+          await calculateAndSaveDelivery(delivery);
+          await calculateSupplierStats(delivery.supplierId);
+          results.created.push(delivery);
+        } catch (error) {
+          console.error("Error processing delivery:", error);
+          results.errors.push({ delivery: deliveryData, error: error.message });
         }
-        
-        const delivery = await Delivery.create(deliveryData);
-        await calculateAndSaveDelivery(delivery);
-        await calculateSupplierStats(delivery.supplierId);
-        createdDeliveries.push(delivery);
       }
-      
-      res.status(201).json(createdDeliveries);
+
+      res.status(201).json(results);
     } catch (error) {
       console.error("Error creating deliveries:", error);
       res.status(500).json({ error: "Ошибка создания поставок" });

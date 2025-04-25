@@ -25,28 +25,53 @@ router.post(
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      
       let ordersData;
       if (req.body.orders && Array.isArray(req.body.orders)) {
         ordersData = req.body.orders;
       } else {
         ordersData = [req.body];
       }
-      
-      const createdOrders = [];
+
+      const results = {
+        created: [],
+        updated: [],
+        errors: []
+      };
+
       for (const orderData of ordersData) {
-        const client = await Client.findByPk(orderData.clientId);
-        if (!client) {
-          return res.status(404).json({ error: "Клиент не найден" });
+        try {
+          const client = await Client.findByPk(orderData.clientId);
+          if (!client) {
+            results.errors.push({ order: orderData, error: "Клиент не найден" });
+            continue;
+          }
+
+          // Проверяем существование заказа по номеру
+          if (orderData.order_number) {
+            const existingOrder = await Order.findOne({ where: { order_number: orderData.order_number } });
+            
+            if (existingOrder) {
+              // Обновляем существующий заказ
+              await existingOrder.update(orderData);
+              await calculateAndSaveOrder(existingOrder);
+              await updateClientFields(existingOrder.clientId);
+              results.updated.push(existingOrder);
+              continue;
+            }
+          }
+
+          // Создаем новый заказ
+          const order = await Order.create(orderData);
+          await calculateAndSaveOrder(order);
+          await updateClientFields(order.clientId);
+          results.created.push(order);
+        } catch (error) {
+          console.error("Error processing order:", error);
+          results.errors.push({ order: orderData, error: error.message });
         }
-        
-        const order = await Order.create(orderData);
-        await calculateAndSaveOrder(order);
-        await updateClientFields(order.clientId);
-        createdOrders.push(order);
       }
-      
-      res.status(201).json(createdOrders);
+
+      res.status(201).json(results);
     } catch (error) {
       console.error("Error creating orders:", error);
       res.status(500).json({ error: "Ошибка создания заказов" });

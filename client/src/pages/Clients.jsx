@@ -98,18 +98,18 @@ const Clients = () => {
   const handleImportExcel = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
+  
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
+  
       const headerToFieldMap = {};
       columns.forEach((col) => {
         headerToFieldMap[col.headerName] = col.field;
       });
-
+  
       const transformedData = jsonData.map((row) => {
         const newRow = {};
         Object.keys(row).forEach((header) => {
@@ -122,10 +122,10 @@ const Clients = () => {
         });
         return newRow;
       });
-
-      const requiredFields = ["name", "type", "unp"];
+  
+      const requiredFields = ["name", "type", "country"];
       const errors = [];
-
+  
       transformedData.forEach((row, idx) => {
         const rowNumber = idx + 2;
         requiredFields.forEach((field) => {
@@ -137,7 +137,7 @@ const Clients = () => {
           errors.push(`Строка ${rowNumber}: УНП должен состоять из 9 цифр`);
         }
       });
-
+  
       if (errors.length > 0) {
         setSnackbar({
           open: true,
@@ -146,17 +146,28 @@ const Clients = () => {
         });
         return;
       }
-
+  
       const response = await axios.post("http://localhost:5000/api/clients", {
         clients: transformedData,
       });
-
+  
+      let message = `Импорт завершен: `;
+      if (response.data.created.length > 0) {
+        message += `Создано новых клиентов: ${response.data.created.length}. `;
+      }
+      if (response.data.updated.length > 0) {
+        message += `Обновлено существующих клиентов: ${response.data.updated.length}. `;
+      }
+      if (response.data.errors.length > 0) {
+        message += `Ошибок при обработке: ${response.data.errors.length}.`;
+      }
+  
       setSnackbar({
         open: true,
-        message: `Импортировано клиентов: ${response.data.length}`,
+        message: message,
         severity: "success",
       });
-
+  
       const updatedClients = await getClients();
       setClients(updatedClients);
     } catch (error) {

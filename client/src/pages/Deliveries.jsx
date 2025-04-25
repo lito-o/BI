@@ -124,18 +124,18 @@ const Deliveries = () => {
   const handleImportExcel = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
+  
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
+  
       const fieldToHeaderMap = {};
       columns.forEach(col => {
         fieldToHeaderMap[col.headerName] = col.field;
       });
-
+  
       const requiredFields = [
         "Номер поставки", "Артикул", "Наименование", "Количество", "Цена за единицу", "Номер"
       ];
@@ -147,7 +147,7 @@ const Deliveries = () => {
       ];
       const supplierIds = suppliers.map(s => s.id);
       const errors = [];
-
+  
       jsonData.forEach((row, idx) => {
         const rowNumber = idx + 2;
         requiredFields.forEach(headerName => {
@@ -155,24 +155,24 @@ const Deliveries = () => {
             errors.push(`Строка ${rowNumber}: отсутствует поле "${headerName}"`);
           }
         });
-
+  
         if (!supplierIds.includes(row["Номер"])) {
           errors.push(`Строка ${rowNumber}: Номер ${row["Номер"]} не найден среди поставщиков`);
         }
-
+  
         numberFields.forEach(headerName => {
           if (row[headerName] !== undefined && isNaN(Number(row[headerName]))) {
             errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть числом`);
           }
         });
-
+  
         dateFields.forEach(headerName => {
           if (row[headerName] && isNaN(new Date(row[headerName]).getTime())) {
             errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть валидной датой`);
           }
         });
       });
-
+  
       if (errors.length > 0) {
         setSnackbar({
           open: true,
@@ -181,7 +181,7 @@ const Deliveries = () => {
         });
         return;
       }
-
+  
       const mappedJsonData = jsonData.map(row => {
         const mappedRow = {};
         Object.keys(row).forEach(headerName => {
@@ -190,17 +190,28 @@ const Deliveries = () => {
         });
         return mappedRow;
       });
-
+  
       const response = await axios.post("http://localhost:5000/api/deliveries", {
         deliveries: mappedJsonData,
       });
-
+  
+      let message = `Импорт завершен: `;
+      if (response.data.created.length > 0) {
+        message += `Создано новых поставок: ${response.data.created.length}. `;
+      }
+      if (response.data.updated.length > 0) {
+        message += `Обновлено существующих поставок: ${response.data.updated.length}. `;
+      }
+      if (response.data.errors.length > 0) {
+        message += `Ошибок при обработке: ${response.data.errors.length}.`;
+      }
+  
       setSnackbar({
         open: true,
-        message: `Импортировано поставок: ${response.data.length}`,
+        message: message,
         severity: "success",
       });
-
+  
       const updatedDeliveries = await getDeliveries();
       const formatted = updatedDeliveries.map(delivery => ({
         ...delivery,

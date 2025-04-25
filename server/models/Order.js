@@ -3,7 +3,7 @@ const db = require("../config/db");
 
 const Order = db.define("Order", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  order_number: { type: DataTypes.INTEGER, allowNull: false, unique: true, comment: "Номер заказа", },
+  order_number: { type: DataTypes.INTEGER, unique: true, allowNull: false },
   request_date: { type: DataTypes.DATE, allowNull: false },
   confirm_date: { type: DataTypes.DATE },
   confirm_status: { type: DataTypes.STRING },

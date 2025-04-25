@@ -37,7 +37,7 @@ async function calculateOrder(order) {
   
     // Расчет маржинальности
     order.marginality = order.total_amount 
-      ? order.cost_price / order.total_amount 
+      ? (order.total_amount - order.cost_price) / order.total_amount 
       : 0;
   
     // Расчет прибыли
