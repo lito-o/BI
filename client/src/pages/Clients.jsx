@@ -110,12 +110,27 @@ const Clients = () => {
         headerToFieldMap[col.headerName] = col.field;
       });
   
+      const normalizeBoolean = (value) => {
+        if (value === undefined || value === null) return undefined;
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') {
+          const lowerVal = value.toLowerCase().trim();
+          if (lowerVal === 'true') return true;
+          if (lowerVal === 'false') return false;
+        }
+        return undefined;
+      };
+  
       const transformedData = jsonData.map((row) => {
         const newRow = {};
         Object.keys(row).forEach((header) => {
           const field = headerToFieldMap[header];
           if (field) {
-            newRow[field] = row[header];
+            if (field === 'unified_state_register' || field === 'ministry_taxes_duties') {
+              newRow[field] = normalizeBoolean(row[header]);
+            } else {
+              newRow[field] = row[header];
+            }
           } else {
             console.warn(`Неизвестный заголовок: ${header}`);
           }
@@ -123,18 +138,51 @@ const Clients = () => {
         return newRow;
       });
   
-      const requiredFields = ["name", "type", "country"];
+      const requiredFields = [
+        "Наименование", 
+        "Вид", 
+        "Страна",
+        "УНП",
+        "ЕГР",
+        "МНС"
+      ];
+  
+      const numberFields = [
+        "Средний чек",
+        "Дебиторская задолженность",
+        "Среднее время оплаты"
+      ];
+  
       const errors = [];
   
-      transformedData.forEach((row, idx) => {
+      jsonData.forEach((row, idx) => {
         const rowNumber = idx + 2;
-        requiredFields.forEach((field) => {
-          if (!row[field]) {
-            errors.push(`Строка ${rowNumber}: отсутствует обязательное поле "${field}"`);
+        
+        requiredFields.forEach((headerName) => {
+          if (!row[headerName] && row[headerName] !== 0) {
+            errors.push(`Строка ${rowNumber}: отсутствует обязательное поле "${headerName}"`);
           }
         });
-        if (row.unp && !/^\d{9}$/.test(row.unp)) {
+  
+        if (row["УНП"] && !/^\d{9}$/.test(row["УНП"])) {
           errors.push(`Строка ${rowNumber}: УНП должен состоять из 9 цифр`);
+        }
+  
+        numberFields.forEach((headerName) => {
+          if (row[headerName] !== undefined && isNaN(Number(row[headerName]))) {
+            errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть числом`);
+          }
+        });
+  
+        const egrValue = row["ЕГР"];
+        const mnsValue = row["МНС"];
+        
+        if (egrValue !== undefined && normalizeBoolean(egrValue) === undefined) {
+          errors.push(`Строка ${rowNumber}: поле "ЕГР" должно быть TRUE или FALSE (получено: ${egrValue})`);
+        }
+        
+        if (mnsValue !== undefined && normalizeBoolean(mnsValue) === undefined) {
+          errors.push(`Строка ${rowNumber}: поле "МНС" должно быть TRUE или FALSE (получено: ${mnsValue})`);
         }
       });
   
@@ -151,7 +199,7 @@ const Clients = () => {
         clients: transformedData,
       });
   
-      let message = `Импорт завершен: `;
+      let message = `Импорт завершен. `;
       if (response.data.created.length > 0) {
         message += `Создано новых клиентов: ${response.data.created.length}. `;
       }
@@ -165,7 +213,7 @@ const Clients = () => {
       setSnackbar({
         open: true,
         message: message,
-        severity: "success",
+        severity: response.data.errors.length ? "error" : "success",
       });
   
       const updatedClients = await getClients();

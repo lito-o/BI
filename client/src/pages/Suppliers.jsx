@@ -154,7 +154,7 @@ const Suppliers = () => {
         suppliers: mappedJsonData,
       });
   
-      let message = `Импорт завершен: `;
+      let message = `Импорт завершен. `;
       if (response.data.created.length > 0) {
         message += `Создано новых поставщиков: ${response.data.created.length}. `;
       }
@@ -164,11 +164,11 @@ const Suppliers = () => {
       if (response.data.errors.length > 0) {
         message += `Ошибок при обработке: ${response.data.errors.length}.`;
       }
-  
+
       setSnackbar({
         open: true,
         message: message,
-        severity: "success",
+        severity: response.data.errors.length ? "error" : "success",
       });
   
       const updatedSuppliers = await getSuppliers();

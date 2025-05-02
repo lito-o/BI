@@ -195,7 +195,7 @@ const Deliveries = () => {
         deliveries: mappedJsonData,
       });
   
-      let message = `Импорт завершен: `;
+      let message = `Импорт завершен. `;
       if (response.data.created.length > 0) {
         message += `Создано новых поставок: ${response.data.created.length}. `;
       }
@@ -205,11 +205,11 @@ const Deliveries = () => {
       if (response.data.errors.length > 0) {
         message += `Ошибок при обработке: ${response.data.errors.length}.`;
       }
-  
+
       setSnackbar({
         open: true,
         message: message,
-        severity: "success",
+        severity: response.data.errors.length ? "error" : "success",
       });
   
       const updatedDeliveries = await getDeliveries();

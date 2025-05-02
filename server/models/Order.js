@@ -34,8 +34,14 @@ const Order = db.define("Order", {
   payment_term: { type: DataTypes.DATE },
   order_payment_time: { type: DataTypes.FLOAT },
   payment_term_status: { type: DataTypes.BOOLEAN },
-  delivery_time: { type: DataTypes.DATE },
-  delivery_date: { type: DataTypes.DATE },
+  
+  dispatch_date: { type: DataTypes.DATE }, // Дата отправки
+  
+  delivery_date: { type: DataTypes.DATE }, // Дата доставки
+  delivery_term: { type: DataTypes.DATE }, // Срок доставки
+  
+  delivery_time: { type: DataTypes.FLOAT }, // Время доставки
+  
   delivery_status: { type: DataTypes.BOOLEAN },
   order_completion_time: { type: DataTypes.FLOAT },
   status: { type: DataTypes.STRING },

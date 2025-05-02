@@ -18,7 +18,7 @@ const Delivery = db.define("Delivery", {
   arrival_date: { type: DataTypes.DATE, comment: "Дата и время поступления", },
   delivery_term: { type: DataTypes.DATE, allowNull: false, comment: "Срок доставки", },
   delivery_time: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, comment: "Время доставки в днях", },
-  status: { type: DataTypes.STRING, allowNull: true, comment: "Статус", },
+  status: { type: DataTypes.STRING, allowNull: true, comment: "Статус доставки", },
 });
 
 module.exports = Delivery;

@@ -6,7 +6,8 @@ async function calculateOrder(order) {
     const paymentDate = order.payment_date ? new Date(order.payment_date) : null;
     const paymentTerm = order.payment_term ? new Date(order.payment_term) : null;
     const deliveryDate = order.delivery_date ? new Date(order.delivery_date) : null;
-    const deliveryTime = order.delivery_time ? new Date(order.delivery_time) : null;
+    const deliveryTerm = order.delivery_term ? new Date(order.delivery_term) : null;
+    const dispatchDate = order.dispatch_date ? new Date(order.dispatch_date) : null;
   
     // Расчет статуса подтверждения
     order.confirm_status = !confirmDate 
@@ -63,21 +64,39 @@ async function calculateOrder(order) {
     }
   
     // Расчет статуса доставки
-    order.delivery_status = deliveryDate && deliveryTime 
-      ? deliveryDate <= deliveryTime 
+    order.delivery_status = deliveryDate && deliveryTerm 
+      ? deliveryDate <= deliveryTerm 
       : null;
   
     // Расчет времени выполнения заказа
     order.order_completion_time = deliveryDate 
       ? Math.abs(deliveryDate - requestDate) / (1000 * 60 * 60 * 24) 
       : null;
-  
+
+    // Расчет времени доставки
+    if (order.dispatch_date !== null && order.delivery_date === null) {
+      order.delivery_time = deliveryDate 
+      ? Math.abs(deliveryDate - dispatchDate) / (1000 * 60 * 60 * 24) 
+      : null;
+    } else {
+      order.delivery_time = 0;
+    }
+
     // Расчет общего статуса заказа
-    order.status = !confirmDate 
-      ? "На рассмотрении" 
-      : order.confirm_status === "Подтверждён" 
-        ? "Подтвержден" 
-        : "Не подтвержден";
+    if (!order.confirm_date) {
+      order.status = "Новый";
+    } else if (order.confirm_status === "Отклонён") {
+      order.status = "Отменён";
+    } else if (order.confirm_status === "Подтверждён" && order.order_ready_date === null) {
+      order.status = "Принят";
+    } else if (order.left_to_pay !== 0) {
+      order.status = "Оплачивается";
+    } else if (order.dispatch_date !== null && order.delivery_date === null) {
+      order.status = "Доставляется";
+    } 
+    else {
+      order.status = "Выполнен";
+    }
   
     return order;
   }

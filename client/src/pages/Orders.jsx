@@ -147,41 +147,56 @@ const Orders = () => {
         return newRow;
       });
   
-      const requiredFields = ["clientId", "request_date", "total_amount", "paid_amount", "order_number"];
-      const numberFields = [
-        "total_amount", "paid_amount", "transportation_costs", "labor_costs",
-        "social_contributions", "rental_costs", "maintenance_premises",
-        "amortization", "energy_costs", "taxes", "staff_labor_costs", "other_costs", "cost"
+      const requiredFields = [
+        "Номер заказа",
+        "Описание",
+        "Дата обращения",
+        "Сумма заказа",
+        "Оплачено",
+        "Номер"
       ];
-      const dateFields = [
-        "request_date", "confirm_date", "order_ready_date",
-        "payment_date", "payment_term", "delivery_date", "delivery_time"
-      ];
-      const clientIds = clients.map(c => c.id);
   
+      const numberFields = [
+        "Сумма заказа", "Оплачено", "Транспортные расходы", "Расходы на оплату труда",
+        "Расходы на социальные нужды", "Расходы на аренду", "Расходы на содержание помещений",
+        "Амортизация ОС и НМА", "Расходы на энергоресурсы", "Налоги",
+        "Расходы на обеспечение труда персонала", "Прочие расходы", "Стоимость"
+      ];
+  
+      const dateFields = [
+        "Дата обращения", "Дата подтверждения", "Дата готовности заказа",
+        "Дата оплаты", "Срок оплаты", "Дата доставки", "Срок доставки", "Дата отправки"
+      ];
+  
+      const clientNames = clients.map(c => c.id);
       const errors = [];
   
       transformedData.forEach((row, idx) => {
         const rowNumber = idx + 2;
-        requiredFields.forEach(field => {
+        
+        requiredFields.forEach(headerName => {
+          const field = headerToFieldMap[headerName];
           if (!row[field] && row[field] !== 0) {
-            errors.push(`Строка ${rowNumber}: отсутствует поле "${field}"`);
+            errors.push(`Строка ${rowNumber}: отсутствует обязательное поле "${headerName}"`);
           }
         });
   
-        if (row.clientId && !clientIds.includes(row.clientId)) {
-          errors.push(`Строка ${rowNumber}: clientId ${row.clientId} не найден среди клиентов`);
+        const clientField = headerToFieldMap["Номер"];
+        if (row[clientField] && !clientNames.includes(row[clientField])) {
+          errors.push(`Строка ${rowNumber}: клиент "${row[clientField]}" не найден`);
         }
   
-        numberFields.forEach(field => {
+        numberFields.forEach(headerName => {
+          const field = headerToFieldMap[headerName];
           if (row[field] !== undefined && isNaN(Number(row[field]))) {
-            errors.push(`Строка ${rowNumber}: поле "${field}" должно быть числом`);
+            errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть числом`);
           }
         });
   
-        dateFields.forEach(field => {
+        dateFields.forEach(headerName => {
+          const field = headerToFieldMap[headerName];
           if (row[field] && isNaN(new Date(row[field]).getTime())) {
-            errors.push(`Строка ${rowNumber}: поле "${field}" должно быть валидной датой`);
+            errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть валидной датой`);
           }
         });
       });
@@ -195,11 +210,25 @@ const Orders = () => {
         return;
       }
   
-      const response = await axios.post("http://localhost:5000/api/orders", {
-        orders: transformedData,
+      const dataToSend = transformedData.map(row => {
+        const clientField = headerToFieldMap["Номер"];
+        if (row[clientField]) {
+          const client = clients.find(c => c.id === row[clientField]);
+          if (client) {
+            return {
+              ...row,
+              clientId: client.id
+            };
+          }
+        }
+        return row;
       });
   
-      let message = `Импорт завершен: `;
+      const response = await axios.post("http://localhost:5000/api/orders", {
+        orders: dataToSend,
+      });
+  
+      let message = `Импорт завершен. `;
       if (response.data.created.length > 0) {
         message += `Создано новых заказов: ${response.data.created.length}. `;
       }
@@ -209,13 +238,13 @@ const Orders = () => {
       if (response.data.errors.length > 0) {
         message += `Ошибок при обработке: ${response.data.errors.length}.`;
       }
-  
+
       setSnackbar({
         open: true,
         message: message,
-        severity: "success",
+        severity: response.data.errors.length ? "error" : "success",
       });
-      
+  
       const updatedOrders = await getOrders();
       const formatted = updatedOrders.map(order => ({
         ...order,
@@ -297,12 +326,14 @@ const Orders = () => {
     dateColumn("payment_term", "Срок оплаты"),
     numberColumn("order_payment_time", "Время оплаты заказа (дн)", 0),
     { field: "payment_term_status", headerName: "Соответствие срокам оплаты", width: 180, type: "boolean" },
-    dateColumn("delivery_time", "Срок доставки"),
+    dateColumn("dispatch_date", "Дата отправки"),
     dateColumn("delivery_date", "Дата доставки"),
+    dateColumn("delivery_term", "Срок доставки"),
+    numberColumn("delivery_time", "Время доставки заказа (дн)", 0),
     { field: "delivery_status", headerName: "Соответствие срокам доставки", width: 180, type: "boolean" },
     numberColumn("order_completion_time", "Время выполнения заказа (дн)"),
     { field: "status", headerName: "Статус заказа", width: 120 },
-    { field: "clientName", headerName: "Клиент", width: 150 },
+    { field: "clientName", headerName: "Номер", width: 150 },
   ];
 
   return (
@@ -314,6 +345,10 @@ const Orders = () => {
           columns: {
             columnVisibilityModel: {
               clientId: false,
+              request_date: false,
+              confirm_date: false,
+              order_ready_date: false,
+              confirm_status: false,
               transportation_costs: false,
               labor_costs: false,
               social_contributions: false,
