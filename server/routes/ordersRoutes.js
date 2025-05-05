@@ -114,4 +114,14 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+router.delete("/", async (req, res) => {
+  try {
+    const count = await Order.destroy({ where: {}, truncate: true });
+    res.json({ message: `Удалено ${count} заказов` });
+  } catch (error) {
+    console.error("Error deleting all orders:", error);
+    res.status(500).json({ error: "Ошибка удаления заказов" });
+  }
+});
+
 module.exports = router;

@@ -5,347 +5,315 @@ const { Op, Sequelize } = require("sequelize");
 const moment = require("moment");
 const router = express.Router();
 
-// Функция для получения исторических данных по месяцам
-const getHistoricalData = async (model, field, whereConditions, groupBy) => {
-  const historicalData = await model.findAll({
-    attributes: [
-      [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("createdAt")), "month"],
-      [Sequelize.fn("SUM", Sequelize.col(field)), "value"],
-    ],
-    where: whereConditions,
-    group: groupBy,
-    order: [["month", "ASC"]],
-    raw: true,
-  });
+const fillMonthlyGaps = (data, startDate, endDate) => {
+  const filledData = [];
+  const dataMap = new Map(data.map(item => [item.month, item.value]));
+  let currentMonth = startDate.clone().startOf('month');
+  let lastValue = 0;
 
-  return historicalData.map((item) => ({
-    month: moment(item.month).format("YYYY-MM"),
-    value: parseFloat(item.value),
-  }));
+  while (currentMonth.isSameOrBefore(endDate, 'month')) {
+    const monthKey = currentMonth.format("YYYY-MM");
+
+    if (dataMap.has(monthKey)) {
+      lastValue = dataMap.get(monthKey);
+      filledData.push({ month: monthKey, value: lastValue });
+    } else {
+      filledData.push({ month: monthKey, value: lastValue });
+    }
+    currentMonth.add(1, 'month');
+  }
+
+  return filledData;
 };
 
-// Функция для расчета изменения показателей по отношению к прошлому месяцу
-const calculateChange = (currentValue, previousValue) => {
-  if (previousValue === 0) return 0;
-  return ((currentValue - previousValue) / previousValue) * 100;
+const getAggregatedHistoricalData = async (model, field, dateField, whereConditions, startDate, endDate, aggregateFn = 'SUM') => {
+    let aggregateSequelizeFn;
+    switch (aggregateFn.toUpperCase()) {
+        case 'AVG':
+            aggregateSequelizeFn = Sequelize.fn("AVG", Sequelize.col(field));
+            break;
+        case 'COUNT':
+            aggregateSequelizeFn = Sequelize.fn("COUNT", Sequelize.col(field || 'id'));
+            break;
+        case 'SUM':
+        default:
+            aggregateSequelizeFn = Sequelize.fn("SUM", Sequelize.col(field));
+            break;
+    }
+
+    const dateWhereCondition = {
+        [dateField]: {
+            [Op.gte]: startDate.toDate(),
+            [Op.lte]: endDate.toDate(),
+        },
+    };
+
+    const rawData = await model.findAll({
+        attributes: [
+            [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col(dateField)), "month"],
+            [aggregateSequelizeFn, "value"],
+        ],
+        where: { ...whereConditions, ...dateWhereCondition },
+        group: [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col(dateField))],
+        order: [[Sequelize.fn("DATE_TRUNC", "month", Sequelize.col(dateField)), "ASC"]],
+        raw: true,
+    });
+
+    const formattedData = rawData.map((item) => ({
+        month: moment(item.month).format("YYYY-MM"),
+        value: parseFloat(item.value) || 0,
+    }));
+
+    return fillMonthlyGaps(formattedData, startDate, endDate);
+};
+
+const calculateChangeFromHistory = (history) => {
+    if (!history || history.length < 2) {
+        return 0;
+    }
+    const currentValue = history[history.length - 1].value;
+    const previousValue = history[history.length - 2].value;
+
+    if (previousValue === 0) {
+        return currentValue > 0 ? 100 : 0;
+    }
+    return ((currentValue - previousValue) / previousValue) * 100;
 };
 
 router.get("/", async (req, res) => {
-  try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    try {
+        const endDate = req.query.endDate ? moment(req.query.endDate) : moment();
+        const startDate = req.query.startDate ? moment(req.query.startDate) : moment().subtract(6, 'months');
 
-    // Доля успешно закрытых заказов
-    const completedOrders = await Order.count({
-      where: {
-        confirm_status: "Подтверждён",
-        request_date: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
-    const totalOrders = await Order.count({
-      where: {
-        request_date: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
+        if (!startDate.isValid() || !endDate.isValid() || startDate.isAfter(endDate)) {
+          return res.status(400).send("Неверный формат или диапазон дат.");
+        }
 
-    const completedOrdersHistory = await Order.findAll({
-      attributes: [
-        [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("request_date")), "month"],
-        [Sequelize.fn("COUNT", Sequelize.col("id")), "total"],
-        [Sequelize.fn("SUM", Sequelize.literal("CASE WHEN confirm_status = 'Подтверждён' THEN 1 ELSE 0 END")), "completed"],
-      ],
-      group: ["month"],
-      order: [["month", "ASC"]],
-      raw: true,
-    }).then(data => 
-      data.map(item => ({
-        month: moment(item.month).format("YYYY-MM"),
-        value: item.total > 0 ? (item.completed / item.total) * 100 : 0
-      }))
-    );
+        const dateRangeFilter = (dateField) => ({
+            [dateField]: { [Op.between]: [startDate.toDate(), endDate.toDate()] },
+        });
 
-    const completedOrdersChange = calculateChange(
-      (completedOrdersHistory[completedOrdersHistory.length - 1]?.value || 0),
-      (completedOrdersHistory[completedOrdersHistory.length - 2]?.value || 0)
-    );
+        const completedOrdersStats = await Order.findAll({
+            attributes: [
+                [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("request_date")), "month"],
+                [Sequelize.fn("COUNT", Sequelize.col("id")), "total"],
+                [Sequelize.literal("SUM(CASE WHEN confirm_status = 'Подтверждён' THEN 1 ELSE 0 END)"), "completed"],
+            ],
+            where: dateRangeFilter('request_date'),
+            group: [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("request_date"))],
+            order: [[Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("request_date")), "ASC"]],
+            raw: true,
+        });
+        const completedOrdersHistoryRaw = completedOrdersStats.map(item => ({
+            month: moment(item.month).format("YYYY-MM"),
+            value: item.total > 0 ? (parseInt(item.completed, 10) / parseInt(item.total, 10)) * 100 : 0
+        }));
+        const completedOrdersHistory = fillMonthlyGaps(completedOrdersHistoryRaw, startDate, endDate);
+        const currentCompletedOrdersTotal = completedOrdersStats.reduce((sum, item) => sum + parseInt(item.completed, 10), 0);
+        const currentTotalOrders = completedOrdersStats.reduce((sum, item) => sum + parseInt(item.total, 10), 0);
+        const currentCompletedOrdersValue = currentTotalOrders > 0 ? (currentCompletedOrdersTotal / currentTotalOrders) * 100 : 0;
+        const completedOrdersChange = calculateChangeFromHistory(completedOrdersHistory);
 
-    // Средняя стоимость заказа
-    const averageOrderCost = await Order.sum("total_amount", {
-      where: {
-        request_date: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
+        const averageOrderCostHistory = await getAggregatedHistoricalData(Order, 'total_amount', 'request_date', {}, startDate, endDate, 'AVG');
+        const currentAverageOrderCostStats = await Order.findOne({
+             attributes: [
+                [Sequelize.fn('AVG', Sequelize.col('total_amount')), 'avgValue']
+             ],
+             where: dateRangeFilter('request_date'),
+             raw: true
+        });
+        const currentAverageOrderCostValue = parseFloat(currentAverageOrderCostStats?.avgValue) || 0;
+        const averageOrderCostChange = calculateChangeFromHistory(averageOrderCostHistory);
 
-    const averageOrderCostHistory = await Order.findAll({
-      attributes: [
-        [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("request_date")), "month"],
-        [Sequelize.fn("AVG", Sequelize.col("total_amount")), "value"],
-      ],
-      group: ["month"],
-      order: [["month", "ASC"]],
-      raw: true,
-    }).then(data => 
-      data.map(item => ({
-        month: moment(item.month).format("YYYY-MM"),
-        value: parseFloat(item.value) || 0
-      }))
-    );
+        const averageOrderTimeHistory = await getAggregatedHistoricalData(Order, 'order_completion_time', 'request_date', {}, startDate, endDate, 'AVG');
+        const currentAverageOrderTimeStats = await Order.findOne({
+             attributes: [
+                [Sequelize.fn('AVG', Sequelize.col('order_completion_time')), 'avgValue']
+             ],
+             where: dateRangeFilter('request_date'),
+             raw: true
+        });
+        const currentAverageOrderTimeValue = parseFloat(currentAverageOrderTimeStats?.avgValue) || 0;
+        const averageOrderTimeChange = calculateChangeFromHistory(averageOrderTimeHistory);
 
-    const averageOrderCostChange = calculateChange(
-      (averageOrderCostHistory[averageOrderCostHistory.length - 1]?.value || 0),
-      (averageOrderCostHistory[averageOrderCostHistory.length - 2]?.value || 0)
-    );
+        const salesVolumeHistory = await getAggregatedHistoricalData(Order, 'total_amount', 'request_date', {}, startDate, endDate, 'SUM');
+        const currentSalesVolumeStats = await Order.findOne({
+             attributes: [
+                [Sequelize.fn('SUM', Sequelize.col('total_amount')), 'sumValue']
+             ],
+             where: dateRangeFilter('request_date'),
+             raw: true
+        });
+        const currentSalesVolumeValue = parseFloat(currentSalesVolumeStats?.sumValue) || 0;
+        const salesVolumeChange = calculateChangeFromHistory(salesVolumeHistory);
 
-    // Среднее время выполнения заказа
-    const averageOrderTime = await Order.sum("order_completion_time", {
-      where: {
-        request_date: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
-    
-    const averageOrderTimeHistory = await Order.findAll({
-      attributes: [
-        [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("request_date")), "month"],
-        [Sequelize.fn("AVG", Sequelize.col("order_completion_time")), "value"],
-      ],
-      group: ["month"],
-      order: [["month", "ASC"]],
-      raw: true,
-    }).then(data => 
-      data.map(item => ({
-        month: moment(item.month).format("YYYY-MM"),
-        value: parseFloat(item.value) || 0
-      }))
-    );
+        const implementationCostsHistory = await getAggregatedHistoricalData(Order, 'general_costs', 'request_date', {}, startDate, endDate, 'SUM');
+         const currentImplementationCostsStats = await Order.findOne({
+             attributes: [
+                [Sequelize.fn('SUM', Sequelize.col('general_costs')), 'sumValue']
+             ],
+             where: dateRangeFilter('request_date'),
+             raw: true
+        });
+        const currentImplementationCostsValue = parseFloat(currentImplementationCostsStats?.sumValue) || 0;
+        const implementationCostsChange = calculateChangeFromHistory(implementationCostsHistory);
 
-    const averageOrderTimeChange = calculateChange(
-      (averageOrderTimeHistory[averageOrderTimeHistory.length - 1]?.value || 0),
-      (averageOrderTimeHistory[averageOrderTimeHistory.length - 2]?.value || 0)
-    );
+        const profitHistory = await getAggregatedHistoricalData(Order, "profit", "request_date", {}, startDate, endDate, 'SUM');
+        const costPriceHistory = await getAggregatedHistoricalData(Order, "cost_price", "request_date", {}, startDate, endDate, 'SUM');
+        const totalAmountHistory = salesVolumeHistory; // Уже посчитали
 
-    // Количество клиентов
-    const totalClients = await Client.count({
-      where: {
-        // createdAt: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
-    const totalClientsHistory = await getHistoricalData(
-      Client,
-      "id",
-      {},
-      ["month"]
-    );
-    const totalClientsChange = calculateChange(
-      (totalClientsHistory[totalClientsHistory.length - 1]?.value || 0),
-      (totalClientsHistory[totalClientsHistory.length - 2]?.value || 0)
-    );
+        const productProfitabilityHistoryRaw = profitHistory.map((item, index) => {
+            const cost = costPriceHistory[index]?.value || 0;
+            return {
+                month: item.month,
+                value: cost > 0 ? (item.value / cost) * 100 : 0
+            };
+        });
+        const productProfitabilityHistory = fillMonthlyGaps(productProfitabilityHistoryRaw, startDate, endDate);
+        const currentProfitSum = profitHistory[profitHistory.length - 1]?.value || 0; 
+        const currentCostSum = costPriceHistory[costPriceHistory.length - 1]?.value || 0; 
+        const currentProductProfitabilityValue = currentCostSum > 0 ? (currentProfitSum / currentCostSum) * 100 : 0;
+        const productProfitabilityChange = calculateChangeFromHistory(productProfitabilityHistory);
 
-    // Количество новых клиентов
-    const newClients = await Client.count({
-      where: {
-        createdAt: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
+        const salesProfitabilityHistoryRaw = profitHistory.map((item, index) => {
+            const sales = totalAmountHistory[index]?.value || 0;
+            return {
+                month: item.month,
+                value: sales > 0 ? (item.value / sales) * 100 : 0
+            };
+        });
+        const salesProfitabilityHistory = fillMonthlyGaps(salesProfitabilityHistoryRaw, startDate, endDate);
+        const currentSalesAmount = totalAmountHistory[totalAmountHistory.length - 1]?.value || 0; 
+        const currentSalesProfitabilityValue = currentSalesAmount > 0 ? (currentProfitSum / currentSalesAmount) * 100 : 0; 
+        const salesProfitabilityChange = calculateChangeFromHistory(salesProfitabilityHistory);
 
-    const newClientsHistory = await getHistoricalData(
-      Client,
-      "id",
-      {},
-      ["month"]
-    );
+        const newClientsPerMonthRaw = await Client.findAll({
+            attributes: [
+                [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("createdAt")), "month"],
+                [Sequelize.fn("COUNT", Sequelize.col("id")), "new_count"],
+            ],
+            where: {
+                 createdAt: { [Op.lte]: endDate.toDate() }
+            },
+            group: [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("createdAt"))],
+            order: [[Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("createdAt")), "ASC"]],
+            raw: true,
+        });
 
-    const newClientsChange = calculateChange(
-      (newClientsHistory[newClientsHistory.length - 1]?.value || 0),
-      (newClientsHistory[newClientsHistory.length - 2]?.value || 0)
-    );
+        const initialClientCount = await Client.count({
+            where: {
+                createdAt: { [Op.lt]: startDate.toDate() }
+            }
+        });
 
-    // Общая дебиторская задолженность
-    const totalDebt = await Client.sum("debt", {
-      where: {
-        // createdAt: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
-    const totalDebtHistory = await getHistoricalData(
-      Client,
-      "debt",
-      {},
-      ["month"]
-    );
-    const totalDebtChange = calculateChange(
-      (totalDebtHistory[totalDebtHistory.length - 1]?.value || 0),
-      (totalDebtHistory[totalDebtHistory.length - 2]?.value || 0)
-    );
+        let cumulativeClients = initialClientCount;
+        const totalClientsHistoryMap = new Map();
+        newClientsPerMonthRaw.forEach(item => {
+            cumulativeClients += parseInt(item.new_count, 10);
+            const monthKey = moment(item.month).format("YYYY-MM");
+            totalClientsHistoryMap.set(monthKey, cumulativeClients);
+        });
 
-    // Среднее время оплаты заказов
-    const averagePaymentTime = await Client.sum("avg_payment_time", {
-      where: {
-        createdAt: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
-    
-    const averagePaymentTimeHistory = await Client.findAll({
-      attributes: [
-        [Sequelize.fn("DATE_TRUNC", "month", Sequelize.col("createdAt")), "month"],
-        [Sequelize.fn("AVG", Sequelize.col("avg_payment_time")), "value"],
-      ],
-      group: ["month"],
-      order: [["month", "ASC"]],
-      raw: true,
-    }).then(data => 
-      data.map(item => ({
-        month: moment(item.month).format("YYYY-MM"),
-        value: parseFloat(item.value) || 0
-      }))
-    );
+        const totalClientsHistory = [];
+        let lastKnownTotal = initialClientCount;
+        let currentMonthIter = startDate.clone().startOf('month');
 
-    const averagePaymentTimeChange = calculateChange(
-      (averagePaymentTimeHistory[averagePaymentTimeHistory.length - 1]?.value || 0),
-      (averagePaymentTimeHistory[averagePaymentTimeHistory.length - 2]?.value || 0)
-    );
+        while (currentMonthIter.isSameOrBefore(endDate, 'month')) {
+            const monthKey = currentMonthIter.format("YYYY-MM");
+            if (totalClientsHistoryMap.has(monthKey)) {
+                 lastKnownTotal = totalClientsHistoryMap.get(monthKey);
+                 totalClientsHistory.push({ month: monthKey, value: lastKnownTotal });
+            } else {
+                 totalClientsHistory.push({ month: monthKey, value: lastKnownTotal });
+            }
+             currentMonthIter.add(1, 'month');
+        }
 
-    // Объем продаж
-    const salesVolume = await Order.sum("total_amount", {
-      where: {
-        request_date: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
-    const salesVolumeHistory = await getHistoricalData(
-      Order,
-      "total_amount",
-      {},
-      ["month"]
-    );
-    const salesVolumeChange = calculateChange(
-      (salesVolumeHistory[salesVolumeHistory.length - 1]?.value || 0),
-      (salesVolumeHistory[salesVolumeHistory.length - 2]?.value || 0)
-    );
+        const currentTotalClientsValue = await Client.count();
+        const totalClientsChange = calculateChangeFromHistory(totalClientsHistory);
 
-    // Расходы на реализацию
-    const implementationCosts = await Order.sum("general_costs", {
-      where: {
-        request_date: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
-    const implementationCostsHistory = await getHistoricalData(
-      Order,
-      "general_costs",
-      {},
-      ["month"]
-    );
-    const implementationCostsChange = calculateChange(
-      (implementationCostsHistory[implementationCostsHistory.length - 1]?.value || 0),
-      (implementationCostsHistory[implementationCostsHistory.length - 2]?.value || 0)
-    );
+        const newClientsHistory = await getAggregatedHistoricalData(Client, 'id', 'createdAt', {}, startDate, endDate, 'COUNT');
+        const currentNewClientsCount = await Client.count({ where: dateRangeFilter('createdAt')});
+        const newClientsChange = calculateChangeFromHistory(newClientsHistory);
 
-    // Рентабельность реализованной продукции
-    const profitSum = await Order.sum("profit", {
-      where: {
-        request_date: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
-    const costSum = await Order.sum("cost_price", {
-      where: {
-        request_date: { [Op.gte]: thirtyDaysAgo },
-      },
-    });
-    const productProfitability = costSum > 0 ? (profitSum / costSum) * 100 : 0;
-    const productProfitabilityHistory = await Promise.all([
-      getHistoricalData(Order, "profit", {}, ["month"]),
-      getHistoricalData(Order, "cost_price", {}, ["month"])
-    ]).then(([profitHistory, costHistory]) => 
-      profitHistory.map((item, index) => ({
-        month: item.month,
-        value: costHistory[index]?.value > 0 
-          ? (item.value / costHistory[index]?.value) * 100 
-          : 0
-      }))
-    );
-    const productProfitabilityChange = calculateChange(
-      (productProfitabilityHistory[productProfitabilityHistory.length - 1]?.value || 0),
-      (productProfitabilityHistory[productProfitabilityHistory.length - 2]?.value || 0)
-    );
+        const avgDebtHistory = await getAggregatedHistoricalData(Client, 'debt', 'createdAt', {}, startDate, endDate, 'AVG');
+        const currentTotalDebtValue = await Client.sum("debt");
+        const totalDebtChange = calculateChangeFromHistory(avgDebtHistory);
 
-    // Рентабельность продаж
-    const salesProfitability = salesVolume > 0 ? (profitSum / salesVolume) * 100 : 0;
-    const salesProfitabilityHistory = await Promise.all([
-      getHistoricalData(Order, "profit", {}, ["month"]),
-      getHistoricalData(Order, "total_amount", {}, ["month"])
-    ]).then(([profitHistory, salesHistory]) => 
-      profitHistory.map((item, index) => ({
-        month: item.month,
-        value: salesHistory[index]?.value > 0 
-          ? (item.value / salesHistory[index]?.value) * 100 
-          : 0
-      }))
-    );
-    const salesProfitabilityChange = calculateChange(
-      (salesProfitabilityHistory[salesProfitabilityHistory.length - 1]?.value || 0),
-      (salesProfitabilityHistory[salesProfitabilityHistory.length - 2]?.value || 0),
-    );
+        const averagePaymentTimeHistory = await getAggregatedHistoricalData(Client, 'avg_payment_time', 'createdAt', {}, startDate, endDate, 'AVG');
+        const currentAveragePaymentTimeStats = await Client.findOne({
+             attributes: [
+                [Sequelize.fn('AVG', Sequelize.col('avg_payment_time')), 'avgValue']
+             ],
+             raw: true
+        });
+         const currentAveragePaymentTimeValue = parseFloat(currentAveragePaymentTimeStats?.avgValue) || 0;
+        const averagePaymentTimeChange = calculateChangeFromHistory(averagePaymentTimeHistory);
 
-    const data = {
-      completedOrders: {
-        value: totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0,
-        change: completedOrdersChange,
-        history: completedOrdersHistory,
-      },
-      averageOrderCost: {
-        value: totalOrders > 0 ? averageOrderCost / totalOrders : 0,
-        change: averageOrderCostChange,
-        history: averageOrderCostHistory,
-      },
-      averageOrderTime: {
-        value: totalOrders > 0 ? averageOrderTime / totalOrders : 0,
-        change: averageOrderTimeChange,
-        history: averageOrderTimeHistory,
-      },
-      totalClients: {
-        value: totalClients || 0,
-        change: totalClientsChange,
-        history: totalClientsHistory,
-      },
-      newClients: {
-        value: newClients || 0,
-        change: newClientsChange,
-        history: newClientsHistory,
-      },
-      totalDebt: {
-        value: totalDebt || 0,
-        change: totalDebtChange,
-        history: totalDebtHistory,
-      },
-      averagePaymentTime: {
-        value: totalClients > 0 ? averagePaymentTime / totalClients : 0,
-        change: averagePaymentTimeChange,
-        history: averagePaymentTimeHistory,
-      },
-      salesVolume: {
-        value: salesVolume || 0,
-        change: salesVolumeChange,
-        history: salesVolumeHistory,
-      },
-      implementationCosts: {
-        value: implementationCosts || 0,
-        change: implementationCostsChange,
-        history: implementationCostsHistory,
-      },
-      productProfitability: {
-        value: productProfitability || 0,
-        change: productProfitabilityChange,
-        history: productProfitabilityHistory,
-      },
-      salesProfitability: {
-        value: salesProfitability || 0,
-        change: salesProfitabilityChange,
-        history: salesProfitabilityHistory,
-      },
-    };
+        const data = {
+            completedOrders: {
+                value: currentCompletedOrdersValue,
+                change: completedOrdersChange,
+                history: completedOrdersHistory,
+            },
+            averageOrderCost: {
+                value: currentAverageOrderCostValue,
+                change: averageOrderCostChange,
+                history: averageOrderCostHistory,
+            },
+            averageOrderTime: {
+                value: currentAverageOrderTimeValue,
+                change: averageOrderTimeChange,
+                history: averageOrderTimeHistory,
+            },
+             salesVolume: {
+                value: currentSalesVolumeValue,
+                change: salesVolumeChange,
+                history: salesVolumeHistory,
+            },
+            implementationCosts: {
+                value: currentImplementationCostsValue,
+                change: implementationCostsChange,
+                history: implementationCostsHistory,
+            },
+             productProfitability: {
+                value: currentProductProfitabilityValue,
+                change: productProfitabilityChange,
+                history: productProfitabilityHistory,
+            },
+            salesProfitability: {
+                value: currentSalesProfitabilityValue,
+                change: salesProfitabilityChange,
+                history: salesProfitabilityHistory,
+            },
+            totalClients: {
+                value: currentTotalClientsValue,
+                change: totalClientsChange,
+                history: totalClientsHistory,
+            },
+            newClients: {
+                value: currentNewClientsCount,
+                change: newClientsChange,
+                history: newClientsHistory,
+            },
+            totalDebt: {
+                value: currentTotalDebtValue || 0,
+                change: totalDebtChange,
+                history: avgDebtHistory,
+            },
+            averagePaymentTime: {
+                value: currentAveragePaymentTimeValue,
+                change: averagePaymentTimeChange,
+                history: averagePaymentTimeHistory,
+            },
+        };
 
-    res.json(data);
-  } catch (error) {
-    console.error("Error fetching dashboard data:", error);
-    res.status(500).send("Internal Server Error");
-  }
+        res.json(data);
+
+    } catch (error) {
+        console.error("Ошибка при загрузке данных дашборда:", error);
+        res.status(500).send("Внутренняя ошибка сервера");
+    }
 });
 
 module.exports = router;

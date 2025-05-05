@@ -1,23 +1,26 @@
 import React from "react";
 import { Card, CardContent, Typography, Chip, Stack, Box } from "@mui/material";
-import { LineChart, Line, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, Tooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts";
 
-const CustomTooltip = ({ active, payload }) => {
+const CustomTooltip = ({ active, payload, label }) => {
+  // active - флаг, показывающий активность тултипа
+  // payload - массив данных точки, над которой находится курсор
+  // label - значение оси X
   if (active && payload && payload.length) {
-    const data = payload[0].payload;
+    const dataPoint = payload[0];
     return (
-      <Box sx={{ 
-        bgcolor: 'background.paper', 
-        p: 1, 
+      <Box sx={{
+        bgcolor: 'background.paper',
+        p: 1,
         borderRadius: 1,
-        boxShadow: 2,
+        boxShadow: 3,
         border: '1px solid #e0e0e0'
       }}>
-        <Typography variant="caption" color="text.secondary">
-          {data.month}
+        <Typography variant="caption" color="text.secondary" display="block">
+          {label}
         </Typography>
-        <Typography variant="subtitle2" color="text.primary" fontWeight={600}>
-            {data.value.toFixed(2)}
+        <Typography variant="subtitle2" color="primary" fontWeight={600}>
+          {`Значение: ${parseFloat(dataPoint.value).toFixed(2)}`}
         </Typography>
       </Box>
     );
@@ -25,75 +28,108 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-const DashboardCard = ({ title, value, change, period, data }) => {
+const DashboardCard = ({ title, value, change, data, period }) => {
+  const chipColor = change > 0 ? "success" : change < 0 ? "error" : "default";
+  const chipBgColor = change > 0 ? '#E1F4E3' : change < 0 ? '#FDE2E1' : '#F3DAFF';
+  const chipTextColor = change > 0 ? '#0E6B14' : change < 0 ? '#8A120E' : '#5A4166';
+
+  // Проверка на валидность данных для графика
+  const isDataValid = Array.isArray(data) && data.length > 0 && data.every(item => typeof item.value === 'number');
+
   return (
-    <Card sx={{ 
-      width: "100%", 
-      height: "100%", 
-      p: 3,
+    <Card sx={{
+      width: "100%",
+      height: "100%",
+      p: 2,
       borderRadius: 2,
-      boxShadow: "0px 2px 10px rgba(0, 0, 0, 0.1)"
+      boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
+      display: 'flex',
+      flexDirection: 'column',
     }}>
-      <CardContent sx={{ 
-        p: 0, 
-        '&:last-child': { 
-          paddingBottom: 0 
-        } 
+      <CardContent sx={{
+        p: 0,
+        '&:last-child': { paddingBottom: 0 },
+        flexGrow: 1,
+        display: 'flex',
+        flexDirection: 'column',
       }}>
-        <Typography 
-          variant="subtitle1" 
-          color="text.secondary" 
+      {/* Заголовок карточки */}
+        <Typography
+          variant="subtitle1"
+          color="text.secondary"
           gutterBottom
-          sx={{ fontWeight: 500 }}
+          sx={{ fontWeight: 500, mb: 1 }}
         >
           {title}
         </Typography>
-        
-        <Stack direction="row" alignItems="flex-end" spacing={1} mb={2}>
-          <Typography 
-            variant="h4" 
-            sx={{ fontWeight: 700 }}
+
+        {/* Основное значение и чип с изменением */}
+        <Stack direction="row" alignItems="center" spacing={1.5} mb={2}>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 700, lineHeight: 1.2 }}
+            component="span"
           >
-            {value.toFixed(2)}
+            {Number.isInteger(value) ? value : value.toFixed(2)}
           </Typography>
+          {/* Чип с процентом изменения */}
           <Chip
-            label={`${change.toFixed(2)}%`}
-            color="success"
+            // label={`${change > 0 ? '+' : ''}${change.toFixed(1)}%`} // Показываем знак и 1 знак после запятой
+            label={`${change.toFixed(1)}%`}
+            color={chipColor}
             size="small"
-            sx={{ 
+            sx={{
               borderRadius: 1,
-              backgroundColor: "#F3DAFF",
-              color: "#5A4166",
-              fontWeight: 600
+              fontWeight: 600,
+              backgroundColor: chipBgColor,
+              color: chipTextColor,
             }}
           />
         </Stack>
-        
-        <Box sx={{ width: '100%', height: "100px", mt: 2, mb: 1 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#B482CC" 
-                strokeWidth={2}
-                dot={false}
-              />
-              <Tooltip 
-                content={<CustomTooltip />}
-                cursor={{ stroke: '#e0e0e0', strokeWidth: 1, strokeDasharray: '3 3' }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+
+        {/* Контейнер для графика */}
+        <Box sx={{ width: '100%', height: "100px", flexGrow: 1, mb: 1 }}>
+          {isDataValid ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                  data={data}
+                  margin={{ top: 5, right: 10, left: -25, bottom: 0 }}
+              >
+                {/* Сетка для наглядности */}
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" vertical={false} />
+                {/* Ось X (месяцы) */}
+                <XAxis dataKey="month" hide />
+                {/* Ось Y */}
+                <YAxis axisLine={false} tickLine={false} width={30} />
+                 {/* Тултип при наведении */}
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#B482CC', strokeWidth: 1, strokeDasharray: '3 3' }}/>
+                {/* Линия графика */}
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#B482CC"
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{ r: 5, strokeWidth: 1, fill: '#B482CC' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+              <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                  <Typography variant="caption" color="text.secondary">Нет данных для графика</Typography>
+              </Box>
+          )}
         </Box>
-        
-        <Typography 
-          variant="caption" 
-          color="text.secondary"
-          sx={{ display: "block" }}
-        >
-          {period}
-        </Typography>
+
+        {period && (
+             <Typography
+                 variant="caption"
+                 color="text.secondary"
+                 sx={{ display: "block", mt: 'auto' }}
+             >
+                 {period}
+             </Typography>
+         )}
       </CardContent>
     </Card>
   );

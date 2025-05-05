@@ -87,7 +87,7 @@ async function calculateOrder(order) {
       order.status = "Новый";
     } else if (order.confirm_status === "Отклонён") {
       order.status = "Отменён";
-    } else if (order.confirm_status === "Подтверждён" && order.order_ready_date === null) {
+    } else if (order.confirm_status === "Подтверждён" && order.order_ready_date === null || order.dispatch_date === null && order.delivery_date === null) {
       order.status = "Принят";
     } else if (order.left_to_pay !== 0) {
       order.status = "Оплачивается";

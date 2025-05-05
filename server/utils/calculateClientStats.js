@@ -10,7 +10,7 @@ async function calculateAvgCheck(clientId) {
   }
   
   async function calculateDebt(clientId) {
-    const orders = await Order.findAll({ where: { clientId} });
+    const orders = await Order.findAll({ where: { clientId, status: "Оплачивается"} });
     return orders.reduce((sum, order) => sum + order.left_to_pay, 0);
   }
   // async function calculateDebt(clientId) {
