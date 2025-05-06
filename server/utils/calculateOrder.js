@@ -8,11 +8,13 @@ async function calculateOrder(order) {
     const deliveryDate = order.delivery_date ? new Date(order.delivery_date) : null;
     const deliveryTerm = order.delivery_term ? new Date(order.delivery_term) : null;
     const dispatchDate = order.dispatch_date ? new Date(order.dispatch_date) : null;
+
+    const interval = now - requestDate > 7 * 24 * 60 * 60 * 1000;
   
     // Расчет статуса подтверждения
-    order.confirm_status = !confirmDate 
+    order.confirm_status = !confirmDate && interval === false
       ? "На рассмотрении" 
-      : confirmDate - requestDate > 7 * 24 * 60 * 60 * 1000 
+      : interval === true && order.total_amount === 0
         ? "Отклонён" 
         : "Подтверждён";
   
@@ -83,7 +85,7 @@ async function calculateOrder(order) {
     }
 
     // Расчет общего статуса заказа
-    if (!order.confirm_date) {
+    if (!order.confirm_date && order.confirm_status !== "Отклонён") {
       order.status = "Новый";
     } else if (order.confirm_status === "Отклонён") {
       order.status = "Отменён";

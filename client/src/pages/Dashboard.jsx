@@ -15,6 +15,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import moment from 'moment';
 import 'moment/locale/ru';
+import FilterIcon from '../static/images/filter.png'
 import CalendarIcon from '../static/images/calendar.png';
 
 import DashboardCard from "../components/DashboardCard";
@@ -147,13 +148,12 @@ const Dashboard = () => {
             },
           }}
         >
-           {periodString}
+           {/* {periodString} */}
           
-            {/* Иконка календаря */}
             <Box
              component="img"
-             src={CalendarIcon}
-             alt="Calendar"
+             src={FilterIcon}
+             alt="Filter"
              sx={{
                width: 16,
                height: 16,
@@ -183,12 +183,13 @@ const Dashboard = () => {
                 mt: 1,
                 borderRadius: 2,
                 boxShadow: theme.shadows[6],
-                minWidth: '280px',
+                // minWidth: '280px',
+                width: '209px',
               }
             }
           }}
         >
-          <Typography variant="subtitle1" sx={{ mb: 2, textAlign: 'center', fontWeight: 500 }}>
+          <Typography variant="subtitle1" sx={{ mb: 2, textAlign: 'center', fontWeight: 400, fontFamily: 'Manrope', fontSize: '18px' }}>
             Выберите период
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -198,6 +199,21 @@ const Dashboard = () => {
               value={tempStartDate}
               onChange={(newValue) => setTempStartDate(newValue)}
               maxDate={tempEndDate || moment()}
+              slots={{
+                openPickerIcon: () => (
+                  <Box
+                    component="img"
+                    src={CalendarIcon}
+                    alt="Calendar"
+                    sx={{
+                      width: 16,
+                      height: 16,
+                      objectFit: 'contain',
+                      opacity: 0.6
+                    }}
+                  />
+                ),
+              }}
               slotProps={{ textField: { size: 'small', fullWidth: true } }}
             />
             {/* DatePicker для конечной даты */}
@@ -207,19 +223,35 @@ const Dashboard = () => {
               onChange={(newValue) => setTempEndDate(newValue)}
               minDate={tempStartDate || undefined}
               maxDate={moment()}
+              slots={{
+                openPickerIcon: () => (
+                  <Box
+                    component="img"
+                    src={CalendarIcon}
+                    alt="Calendar"
+                    sx={{
+                      width: 16,
+                      height: 16,
+                      objectFit: 'contain',
+                      opacity: 0.6
+                    }}
+                  />
+                ),
+              }}
               slotProps={{ textField: { size: 'small', fullWidth: true } }}
             />
           </Box>
           <Divider sx={{ my: 2 }} />
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-             <Button onClick={handleCloseDatePickerPopover} size="small">
+             <Button onClick={handleCloseDatePickerPopover} size="small" sx={{ border: 1, borderColor: "#252525", color: '#252525', borderRadius: "5px", fontFamily: 'Manrope', fontWeight: '600', fontSize: '14px' }}>
                Отмена
              </Button>
             <Button
-              variant="contained"
+              // variant="contained"
               onClick={handleApplyDateRangeFromPopover}
               disabled={!tempStartDate || !tempEndDate || tempStartDate.isAfter(tempEndDate)}
               size="small"
+              sx={{ backgroundColor: "#252525", color: '#fff', borderRadius: "5px", fontFamily: 'Manrope', fontWeight: '600', fontSize: '14px' }}
             >
               Применить
             </Button>

@@ -14,12 +14,12 @@ const CustomTooltip = ({ active, payload, label }) => {
         p: 1,
         borderRadius: 1,
         boxShadow: 3,
-        border: '1px solid #e0e0e0'
+        border: '1px solid #e0e0e0',
       }}>
         <Typography variant="caption" color="text.secondary" display="block">
           {label}
         </Typography>
-        <Typography variant="subtitle2" color="primary" fontWeight={600}>
+        <Typography variant="subtitle2" color="#252525" fontWeight={600}>
           {`Значение: ${parseFloat(dataPoint.value).toFixed(2)}`}
         </Typography>
       </Box>
@@ -30,8 +30,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const DashboardCard = ({ title, value, change, data, period }) => {
   const chipColor = change > 0 ? "success" : change < 0 ? "error" : "default";
-  const chipBgColor = change > 0 ? '#E1F4E3' : change < 0 ? '#FDE2E1' : '#F3DAFF';
+  const chipBgColor = change > 0 ? '#c9f29b' : change < 0 ? '#F98989' : '#e8ecf1';
   const chipTextColor = change > 0 ? '#0E6B14' : change < 0 ? '#8A120E' : '#5A4166';
+  const chartLineColor = change > 0 ? '#A1C27C' : change < 0 ? '#F98989' : '#B6B6B6';
 
   // Проверка на валидность данных для графика
   const isDataValid = Array.isArray(data) && data.length > 0 && data.every(item => typeof item.value === 'number');
@@ -102,15 +103,15 @@ const DashboardCard = ({ title, value, change, data, period }) => {
                 {/* Ось Y */}
                 <YAxis axisLine={false} tickLine={false} width={30} />
                  {/* Тултип при наведении */}
-                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#B482CC', strokeWidth: 1, strokeDasharray: '3 3' }}/>
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#B6B6B6', strokeWidth: 1, strokeDasharray: '3 3' }}/>
                 {/* Линия графика */}
                 <Line
                   type="monotone"
                   dataKey="value"
-                  stroke="#B482CC"
+                  stroke={chartLineColor}
                   strokeWidth={2.5}
                   dot={false}
-                  activeDot={{ r: 5, strokeWidth: 1, fill: '#B482CC' }}
+                  activeDot={{ r: 5, strokeWidth: 1, fill: '#B6B6B6' }}
                 />
               </LineChart>
             </ResponsiveContainer>
