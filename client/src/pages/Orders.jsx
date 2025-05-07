@@ -1,398 +1,208 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  DataGrid,
-  useGridApiRef,
-  gridFilteredSortedRowIdsSelector,
-  gridVisibleColumnFieldsSelector,
-} from "@mui/x-data-grid";
-import { LinearProgress, Alert, Snackbar } from "@mui/material";
-import { getOrders } from "../services/api";
 import * as XLSX from "xlsx";
-import CustomToolbar from "../components/CustomToolbar";
-import Buttons from "../components/Buttons";
 
-const Orders = () => {
-  const apiRef = useGridApiRef();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "info",
-  });
+import UniversalDataGrid from "../components/UniversalDataGrid";
+import { getOrders, getClients } from "../services/api";
 
-  const [filterModel, setFilterModel] = useState(() => {
-    const saved = localStorage.getItem("ordersFilterModel");
-    return saved ? JSON.parse(saved) : { items: [], logicOperator: "and" };
-  });
+const numberColumn = (field, headerName, digits = 2) => ({
+  field,
+  headerName,
+  width: 150,
+  valueGetter: (value) => (value !== undefined ? Number(value).toFixed(digits) : "N/A"),
+  type: "number",
+});
 
-  const [sortModel, setSortModel] = useState(() => {
-    const saved = localStorage.getItem("ordersSortModel");
-    return saved ? JSON.parse(saved) : [];
-  });
+const dateColumn = (field, headerName) => ({
+  field,
+  headerName,
+  width: 180,
+  type: "date",
+  valueGetter: (value) => (value ? new Date(value) : null),
+  valueFormatter: (value) => (value ? new Date(value).toLocaleDateString() : "N/A"),
+});
 
-  const [clients, setClients] = useState([]);
+const columns = [
+  { field: "clientId", headerName: "Номер", width: 0 },
+  { field: "order_number", headerName: "Номер заказа", width: 150 },
+  dateColumn("request_date", "Дата обращения"),
+  dateColumn("confirm_date", "Дата подтверждения"),
+  { field: "confirm_status", headerName: "Статус подтверждения", width: 150 },
+  numberColumn("application_processing_time", "Время обработки заявки (дн)"),
+  dateColumn("order_ready_date", "Дата готовности заказа"),
+  { field: "description", headerName: "Описание", width: 150 },
+  numberColumn("total_amount", "Сумма заказа"),
+  numberColumn("cost", "Стоимость"),
+  numberColumn("profit", "Прибыль"),
+  {
+    field: "marginality",
+    headerName: "Маржинальность",
+    width: 120,
+    type: "number",
+    valueFormatter: (value) => (value != null ? `${(value * 100).toFixed(2)} %` : ""),
+  },
+  {
+    field: "return_on_margin",
+    headerName: "Рентабельность",
+    width: 120,
+    type: "number",
+    valueFormatter: (value) => (value != null ? `${(value * 100).toFixed(2)} %` : ""),
+  },
+  numberColumn("paid_amount", "Оплачено"),
+  numberColumn("left_to_pay", "Осталось оплатить"),
+  dateColumn("payment_date", "Дата оплаты"),
+  dateColumn("payment_term", "Срок оплаты"),
+  numberColumn("order_payment_time", "Время оплаты заказа (дн)", 0),
+  { field: "payment_term_status", headerName: "Сроки оплаты", width: 150, type: "boolean" },
+  dateColumn("dispatch_date", "Дата отправки"),
+  dateColumn("delivery_date", "Дата доставки"),
+  dateColumn("delivery_term", "Срок доставки"),
+  numberColumn("delivery_time", "Время доставки (дн)", 0),
+  { field: "delivery_status", headerName: "Сроки доставки", width: 150, type: "boolean" },
+  numberColumn("order_completion_time", "Время выполнения заказа (дн)"),
+  { field: "status", headerName: "Статус заказа", width: 120 },
+  { field: "clientName", headerName: "Клиент", width: 150 },
+];
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
+const handleImportExcel = (clients) => async (event, setSnackbar, setRows) => {
+  const file = event.target.files[0];
+  if (!file) return;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await getOrders();
-        if (!response) throw new Error("Пустой ответ от сервера");
-        if (!Array.isArray(response)) throw new Error("Ожидался массив заказов");
-        const formattedOrders = response.map(order => ({
-          ...order,
-          id: order.id,
-          clientName: order.Client?.name || order.client?.name || "Неизвестно"
-        }));
-        setOrders(formattedOrders);
-      } catch (error) {
-        console.error("Ошибка при загрузке данных:", error);
-        setError(error.message);
-        setSnackbar({
-          open: true,
-          message: `Ошибка при загрузке данных: ${error.message}`,
-          severity: "error",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  try {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data);
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-  useEffect(() => {
-    localStorage.setItem("ordersFilterModel", JSON.stringify(filterModel));
-  }, [filterModel]);
-
-  useEffect(() => {
-    localStorage.setItem("ordersSortModel", JSON.stringify(sortModel));
-  }, [sortModel]);
-
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/api/clients");
-        setClients(response.data);
-      } catch (error) {
-        console.error("Ошибка загрузки клиентов:", error);
-        setSnackbar({
-          open: true,
-          message: "Ошибка загрузки клиентов",
-          severity: "error",
-        });
-      }
-    };
-    fetchClients();
-  }, []);
-
-  const exportToExcel = () => {
-    if (!apiRef.current) return;
-    const filteredSortedRowIds = gridFilteredSortedRowIdsSelector(apiRef);
-    const visibleColumns = gridVisibleColumnFieldsSelector(apiRef);
-
-    const exportData = filteredSortedRowIds.map((id) => {
-      const row = apiRef.current.getRow(id);
-      const rowData = {};
-      visibleColumns.forEach((field) => {
-        const column = columns.find((col) => col.field === field);
-        if (!column) return;
-        let value = row[field];
-        if (column.valueGetter) {
-          value = column.valueGetter(value, row);
-        }
-        rowData[column.headerName] = value !== undefined ? value : "";
-      });
-      return rowData;
+    const headerToFieldMap = {};
+    columns.forEach((col) => {
+      headerToFieldMap[col.headerName] = col.field;
     });
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Orders");
-    XLSX.writeFile(wb, "Заказы.xlsx");
-  };
+    const clientIds = clients.map((c) => c.id);
+    const requiredFields = ["Номер заказа", "Описание", "Дата обращения", "Номер"];
+    const numberFields = ["Сумма заказа", "Оплачено", "Стоимость"];
+    const dateFields = ["Дата обращения", "Дата оплаты", "Дата доставки"];
+    const errors = [];
 
-  const handleImportExcel = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-  
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
-      const headerToFieldMap = {};
-      columns.forEach((col) => {
-        headerToFieldMap[col.headerName] = col.field;
+    const transformedData = jsonData.map((row, idx) => {
+      const rowNumber = idx + 2;
+      const newRow = {};
+
+      Object.keys(row).forEach((header) => {
+        const field = headerToFieldMap[header];
+        if (field) newRow[field] = row[header];
       });
-  
-      const transformedData = jsonData.map((row) => {
-        const newRow = {};
-        Object.keys(row).forEach((header) => {
-          const field = headerToFieldMap[header];
-          if (field) {
-            newRow[field] = row[header];
-          } else {
-            console.warn(`Неизвестный заголовок: ${header}`);
-          }
-        });
-        return newRow;
-      });
-  
-      const requiredFields = [
-        "Номер заказа",
-        "Описание",
-        "Дата обращения",
-        "Номер"
-      ];
-  
-      const numberFields = [
-        "Сумма заказа", "Оплачено", "Транспортные расходы", "Расходы на оплату труда",
-        "Расходы на социальные нужды", "Расходы на аренду", "Расходы на содержание помещений",
-        "Амортизация ОС и НМА", "Расходы на энергоресурсы", "Налоги",
-        "Расходы на обеспечение труда персонала", "Прочие расходы", "Стоимость"
-      ];
-  
-      const dateFields = [
-        "Дата обращения", "Дата подтверждения", "Дата готовности заказа",
-        "Дата оплаты", "Срок оплаты", "Дата доставки", "Срок доставки", "Дата отправки"
-      ];
-  
-      const clientNames = clients.map(c => c.id);
-      const errors = [];
-  
-      transformedData.forEach((row, idx) => {
-        const rowNumber = idx + 2;
-        
-        requiredFields.forEach(headerName => {
-          const field = headerToFieldMap[headerName];
-          if (!row[field] && row[field] !== 0) {
-            errors.push(`Строка ${rowNumber}: отсутствует обязательное поле "${headerName}"`);
-          }
-        });
-  
-        const clientField = headerToFieldMap["Номер"];
-        if (row[clientField] && !clientNames.includes(row[clientField])) {
-          errors.push(`Строка ${rowNumber}: клиент "${row[clientField]}" не найден`);
+
+      requiredFields.forEach((header) => {
+        if (!row[header] && row[header] !== 0) {
+          errors.push(`Строка ${rowNumber}: отсутствует обязательное поле "${header}"`);
         }
-  
-        numberFields.forEach(headerName => {
-          const field = headerToFieldMap[headerName];
-          if (row[field] !== undefined && isNaN(Number(row[field]))) {
-            errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть числом`);
-          }
-        });
-  
-        dateFields.forEach(headerName => {
-          const field = headerToFieldMap[headerName];
-          if (row[field] && isNaN(new Date(row[field]).getTime())) {
-            errors.push(`Строка ${rowNumber}: поле "${headerName}" должно быть валидной датой`);
-          }
-        });
       });
-  
-      if (errors.length > 0) {
-        setSnackbar({
-          open: true,
-          message: `Найдены ошибки в Excel-файле:\n${errors.join("\n")}`,
-          severity: "error",
-        });
-        return;
-      }
-  
-      const dataToSend = transformedData.map(row => {
-        const clientField = headerToFieldMap["Номер"];
-        if (row[clientField]) {
-          const client = clients.find(c => c.id === row[clientField]);
-          if (client) {
-            return {
-              ...row,
-              clientId: client.id
-            };
-          }
-        }
-        return row;
-      });
-  
-      const response = await axios.post("http://localhost:5000/api/orders", {
-        orders: dataToSend,
-      });
-  
-      let message = `Импорт завершен. `;
-      if (response.data.created.length > 0) {
-        message += `Создано новых заказов: ${response.data.created.length}. `;
-      }
-      if (response.data.updated.length > 0) {
-        message += `Обновлено существующих заказов: ${response.data.updated.length}. `;
-      }
-      if (response.data.errors.length > 0) {
-        message += `Ошибок при обработке: ${response.data.errors.length}.`;
+
+      const clientId = newRow["clientId"];
+      if (clientId && !clientIds.includes(clientId)) {
+        errors.push(`Строка ${rowNumber}: клиент с id "${clientId}" не найден`);
       }
 
-      setSnackbar({
-        open: true,
-        message: message,
-        severity: response.data.errors.length ? "error" : "success",
+      numberFields.forEach((header) => {
+        const value = row[header];
+        if (value !== undefined && isNaN(Number(value))) {
+          errors.push(`Строка ${rowNumber}: поле "${header}" должно быть числом`);
+        }
       });
-  
-      const updatedOrders = await getOrders();
-      const formatted = updatedOrders.map(order => ({
-        ...order,
-        id: order.id,
-        clientName: order.Client?.name || order.client?.name || "Неизвестно",
-      }));
-      setOrders(formatted);
-    } catch (error) {
-      console.error("Ошибка импорта:", error);
+
+      dateFields.forEach((header) => {
+        const value = row[header];
+        if (value && isNaN(new Date(value).getTime())) {
+          errors.push(`Строка ${rowNumber}: поле "${header}" должно быть валидной датой`);
+        }
+      });
+
+      return newRow;
+    });
+
+    if (errors.length > 0) {
       setSnackbar({
         open: true,
-        message: "Ошибка при импорте заказов. См. консоль.",
+        message: `Найдены ошибки в Excel-файле:\n${errors.join("\n")}`,
         severity: "error",
       });
+      return;
     }
-  };
 
-  const dateColumn = (field, headerName) => ({
-    field,
-    headerName,
-    width: 180,
-    type: "date",
-    valueGetter: (value) => (value ? new Date(value) : null),
-    valueFormatter: (value) => (value ? new Date(value).toLocaleString() : "N/A"),
-  });
+    const enriched = transformedData.map((row) => {
+      const client = clients.find((c) => c.id === row.clientId);
+      return {
+        ...row,
+        clientName: client?.name || "Неизвестно",
+      };
+    });
 
-  const numberColumn = (field, headerName, digits = 2) => ({
-    field,
-    headerName,
-    width: 150,
-    valueGetter: (value) => (value !== undefined ? Number(value).toFixed(digits) : "N/A"),
-    type: "number",
-  });
+    const response = await axios.post("http://localhost:5000/api/orders", {
+      orders: enriched,
+    });
 
-  const columns = [
-    { field: "clientId", headerName: "Номер", width: 0, },
-    { field: "order_number", headerName: "Номер заказа", width: 150 },
-    dateColumn("request_date", "Дата обращения"),
-    dateColumn("confirm_date", "Дата подтверждения"),
-    { field: "confirm_status", headerName: "Статус подтверждения", width: 150 },
-    numberColumn("application_processing_time", "Время обработки заявки (дн)"),
-    dateColumn("order_ready_date", "Дата готовности заказа"),
-    { field: "description", headerName: "Описание", width: 150 },
-    numberColumn("total_amount", "Сумма заказа"),
-    numberColumn("general_costs", "Расходы на реализацию"),
-    numberColumn("cost_price", "Себестоимость"),
-    numberColumn("cost", "Стоимость"),
+    let message = `Импорт завершен. `;
+    if (response.data.created.length > 0) {
+      message += `Создано заказов: ${response.data.created.length}. `;
+    }
+    if (response.data.updated.length > 0) {
+      message += `Обновлено: ${response.data.updated.length}. `;
+    }
+    if (response.data.errors.length > 0) {
+      message += `Ошибок: ${response.data.errors.length}.`;
+    }
 
-    numberColumn("transportation_costs", "Транспортные расходы"),
-    numberColumn("labor_costs", "Расходы на оплату труда"),
-    numberColumn("social_contributions", "Расходы на социальные нужды"),
-    numberColumn("rental_costs", "Расходы на аренду"),
-    numberColumn("maintenance_premises", "Расходы на содержание помещений"),
-    numberColumn("amortization", "Амортизация ОС и НМА"),
-    numberColumn("energy_costs", "Расходы на энергоресурсы"),
-    numberColumn("taxes", "Налоги"),
-    numberColumn("staff_labor_costs", "Расходы на обеспечение труда персонала"),
-    numberColumn("other_costs", "Прочие расходы"),
+    setSnackbar({
+      open: true,
+      message,
+      severity: response.data.errors.length ? "error" : "success",
+    });
 
-    { field: "currency", headerName: "Валюта", width: 80 },
-    {
-      field: "marginality",
-      headerName: "Маржинальность",
-      width: 120,
-      type: "number",
-      valueFormatter: (value) => (value != null ? `${(value * 100).toFixed(2)} %` : ''),
-    },
-    numberColumn("profit", "Прибыль"),
-    {
-      field: "return_on_margin",
-      headerName: "Рентабельность",
-      width: 120,
-      type: "number",
-      valueFormatter: (value) => (value != null ? `${(value * 100).toFixed(2)} %` : ''),
-    },
-    numberColumn("paid_amount", "Оплачено"),
-    numberColumn("left_to_pay", "Осталось оплатить"),
-    dateColumn("payment_date", "Дата оплаты"),
-    dateColumn("payment_term", "Срок оплаты"),
-    numberColumn("order_payment_time", "Время оплаты заказа (дн)", 0),
-    { field: "payment_term_status", headerName: "Соответствие срокам оплаты", width: 180, type: "boolean" },
-    dateColumn("dispatch_date", "Дата отправки"),
-    dateColumn("delivery_date", "Дата доставки"),
-    dateColumn("delivery_term", "Срок доставки"),
-    numberColumn("delivery_time", "Время доставки заказа (дн)", 0),
-    { field: "delivery_status", headerName: "Соответствие срокам доставки", width: 180, type: "boolean" },
-    numberColumn("order_completion_time", "Время выполнения заказа (дн)"),
-    { field: "status", headerName: "Статус заказа", width: 120 },
-    { field: "clientName", headerName: "Номер", width: 150 },
-  ];
+    const updated = await getOrders();
+    const formatted = updated.map((order) => ({
+      ...order,
+      id: order.id,
+      clientName: order.Client?.name || order.client?.name || "Неизвестно",
+    }));
+    setRows(formatted);
+  } catch (error) {
+    console.error("Ошибка импорта:", error);
+    setSnackbar({
+      open: true,
+      message: "Ошибка при импорте заказов. См. консоль.",
+      severity: "error",
+    });
+  }
+};
+
+const Orders = () => {
+  const [clients, setClients] = useState([]);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const response = await getClients();
+      setClients(response);
+    };
+    fetch();
+  }, []);
 
   return (
-    <div style={{ height: 750, width: "100%" }}>
-      <Buttons exportToExcel={exportToExcel} handleImportExcel={handleImportExcel} />
-
-      <DataGrid
-        initialState={{
-          columns: {
-            columnVisibilityModel: {
-              clientId: false,
-              request_date: false,
-              confirm_date: false,
-              order_ready_date: false,
-              confirm_status: false,
-              transportation_costs: false,
-              labor_costs: false,
-              social_contributions: false,
-              rental_costs: false,
-              maintenance_premises: false,
-              amortization: false,
-              energy_costs: false,
-              taxes: false,
-              staff_labor_costs: false,
-              other_costs: false,
-            },
-          },
-        }}
-        apiRef={apiRef}
-        rows={orders}
-        columns={columns}
-        loading={loading}
-        pageSize={10}
-        rowsPerPageOptions={[10]}
-        getRowId={(row) => row.id}
-        slots={{
-          loadingOverlay: LinearProgress,
-          toolbar: CustomToolbar,
-        }}
-        filterModel={filterModel}
-        onFilterModelChange={setFilterModel}
-        sortModel={sortModel}
-        onSortModelChange={setSortModel}
-        sortingOrder={["asc", "desc"]}
-      />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </div>
+    <UniversalDataGrid
+      fetchData={async () => {
+        const raw = await getOrders();
+        return raw.map((order) => ({
+          ...order,
+          id: order.id,
+          clientName: order.Client?.name || order.client?.name || "Неизвестно",
+        }));
+      }}
+      columns={columns}
+      sheetName="Заказы"
+      localStorageKey="orders"
+      importHandler={handleImportExcel(clients)}
+    />
   );
 };
 
