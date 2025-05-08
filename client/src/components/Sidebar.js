@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Drawer,
   List,
@@ -24,12 +24,24 @@ import Sidebar_img from '../static/images/sidebar.png';
 const Sidebar = () => {
   const [open, setOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [user, setUser] = useState({
+    name: "",
+    email: ""
+  });
   const navigate = useNavigate();
   const location = useLocation();
-  const user = {
-    name: "Evgeny Kadolich",
-    email: "kadolich@gmail.com"
-  };
+  
+  useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem("user"));
+    if (userData) {
+      setUser({
+        name: `${userData.firstName} ${userData.lastName}`,
+        email: userData.email
+      });
+    } else {
+      navigate("/login");
+    }
+  }, [navigate]);
   
   const menuItems = [
     { text: "Главная", icon: Main, path: "/dashboard" },
@@ -41,6 +53,7 @@ const Sidebar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate("/login");
     handleMenuClose();
   };
@@ -118,7 +131,7 @@ const Sidebar = () => {
               "&:hover": {
                 backgroundColor: '#EAEAEA'
               },
-              py: "2px",
+              py: open ? "2px" : "8px",
               borderRadius: "5px",
               px: open ? "16px" : "10px",
             }}
