@@ -22,6 +22,14 @@ const dateColumn = (field, headerName) => ({
   valueFormatter: (value) => (value ? new Date(value).toLocaleDateString() : "N/A"),
 });
 
+const percentageColumn = (field, headerName) => ({
+  field,
+  headerName,
+  width: 120,
+  type: "number",
+  valueFormatter: (value) => (value != null ? `${(value * 100).toFixed(2)} %` : ""),
+});
+
 const columns = [
   { field: "clientId", headerName: "Номер", width: 0 },
   { field: "order_number", headerName: "Номер заказа", width: 150 },
@@ -32,22 +40,25 @@ const columns = [
   dateColumn("order_ready_date", "Дата готовности заказа"),
   { field: "description", headerName: "Описание", width: 150 },
   numberColumn("total_amount", "Сумма заказа"),
+  numberColumn("general_costs", "Расходы на реализацию"),
+  numberColumn("cost_price", "Себестоимость"),
   numberColumn("cost", "Стоимость"),
+
+  numberColumn("transportation_costs", "Транспортные расходы"),
+  numberColumn("labor_costs", "Расходы на оплату труда"),
+  numberColumn("social_contributions", "Расходы на социальные нужды"),
+  numberColumn("rental_costs", "Расходы на аренду"),
+  numberColumn("maintenance_premises", "Расходы на содержание помещений"),
+  numberColumn("amortization", "Амортизация ОС и НМА"),
+  numberColumn("energy_costs", "Расходы на энергоресурсы"),
+  numberColumn("taxes", "Налоги"),
+  numberColumn("staff_labor_costs", "Расходы на обеспечение труда персонала"),
+  numberColumn("other_costs", "Прочие расходы"),
+  
+  { field: "currency", headerName: "Валюта", width: 80 },
   numberColumn("profit", "Прибыль"),
-  {
-    field: "marginality",
-    headerName: "Маржинальность",
-    width: 120,
-    type: "number",
-    valueFormatter: (value) => (value != null ? `${(value * 100).toFixed(2)} %` : ""),
-  },
-  {
-    field: "return_on_margin",
-    headerName: "Рентабельность",
-    width: 120,
-    type: "number",
-    valueFormatter: (value) => (value != null ? `${(value * 100).toFixed(2)} %` : ""),
-  },
+  percentageColumn("marginality", "Маржинальность"),
+  percentageColumn("return_on_margin", "Рентабельность"),
   numberColumn("paid_amount", "Оплачено"),
   numberColumn("left_to_pay", "Осталось оплатить"),
   dateColumn("payment_date", "Дата оплаты"),
@@ -81,8 +92,12 @@ const handleImportExcel = (clients) => async (event, setSnackbar, setRows) => {
 
     const clientIds = clients.map((c) => c.id);
     const requiredFields = ["Номер заказа", "Описание", "Дата обращения", "Номер"];
-    const numberFields = ["Сумма заказа", "Оплачено", "Стоимость"];
-    const dateFields = ["Дата обращения", "Дата оплаты", "Дата доставки"];
+    const numberFields = ["Сумма заказа", "Оплачено", "Транспортные расходы", "Расходы на оплату труда",
+    "Расходы на социальные нужды", "Расходы на аренду", "Расходы на содержание помещений",
+    "Амортизация ОС и НМА", "Расходы на энергоресурсы", "Налоги", "Расходы на обеспечение труда персонала", 
+    "Прочие расходы", "Стоимость"];
+    const dateFields = ["Дата обращения", "Дата подтверждения", "Дата готовности заказа", 
+    "Дата оплаты", "Срок оплаты", "Дата доставки", "Срок доставки", "Дата отправки"];
     const errors = [];
 
     const transformedData = jsonData.map((row, idx) => {
