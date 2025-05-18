@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  server:
+    build:
+      context: ./server
+    container_name: bpea_server
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=postgres
+      - DB_PASS=weR2_ziTka0_Gom0_kr4_Est
+      - DB_NAME=BPEA
+      - DB_PORT=5432
+      - JWT_SECRET=weR2_ziTka0_Gom0_kr4_Est
+      - JWT_EXPIRES_IN=1d
+      - PORT=5000
+    volumes:
+      - ./server:/app
+    depends_on:
+      - db
+    restart: always
+
+  client:
+    build:
+      context: ./client
+    container_name: bpea_client
+    ports:
+      - "3000:80" # React работает через nginx на порту 80
+    depends_on:
+      - server
+    restart: always
+
+  db:
+    image: postgres:15
+    container_name: bpea_db
+    restart: always
+    environment:
+      POSTGRES_DB: BPEA
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: weR2_ziTka0_Gom0_kr4_Est
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

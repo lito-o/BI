@@ -156,7 +156,8 @@ const Sidebar = () => {
                     fontFamily: 'Manrope',
                     fontWeight: '500',
                     fontSize: '16px',
-                    color: '#252525'
+                    color: '#252525',
+                    cursor: 'pointer'
                   }
                 }}
               />

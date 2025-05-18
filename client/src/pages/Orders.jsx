@@ -31,7 +31,6 @@ const percentageColumn = (field, headerName) => ({
 });
 
 const columns = [
-  { field: "clientId", headerName: "Номер", width: 0 },
   { field: "order_number", headerName: "Номер заказа", width: 150 },
   dateColumn("request_date", "Дата обращения"),
   dateColumn("confirm_date", "Дата подтверждения"),
@@ -73,6 +72,7 @@ const columns = [
   numberColumn("order_completion_time", "Время выполнения заказа (дн)"),
   { field: "status", headerName: "Статус заказа", width: 120 },
   { field: "clientName", headerName: "Клиент", width: 150 },
+  { field: "clientId", headerName: "Номер", width: 0 },
 ];
 
 const handleImportExcel = (clients) => async (event, setSnackbar, setRows) => {
